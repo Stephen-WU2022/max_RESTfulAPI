@@ -1,4 +1,4 @@
-package maxapi
+package max_RESTfulAPI
 
 import (
 	"bytes"
