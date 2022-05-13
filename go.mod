@@ -1,4 +1,4 @@
-module github.com/Bo-Hao/maxapi
+module max_RESTfulAPI
 
 go 1.17
 
@@ -7,7 +7,7 @@ require (
 	github.com/gorilla/websocket v1.5.0
 	github.com/shopspring/decimal v1.3.1
 	github.com/sirupsen/logrus v1.8.1
-	golang.org/x/oauth2 v0.0.0-20220223155221-ee480838109b
+	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5
 )
 
 require (
