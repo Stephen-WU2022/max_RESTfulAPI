@@ -1,4 +1,4 @@
-module max_RESTfulAPI
+module github.com/Bo-Hao/max_RESTfulAPI
 
 go 1.17
 
