@@ -696,9 +696,9 @@ func (Mc *MaxClient) handleTradeReportMsg(msg []byte) error {
 	switch event {
 	case "authenticated":
 	case "trade_snapshot":
-		err2 = Mc.parseTradeSnapshotMsg(msgMap)
+		err2 = Mc.parseTradeReportSnapshotMsg(msgMap)
 	case "trade_update":
-		err2 = Mc.parseTradeUpdateMsg(msgMap)
+		err2 = Mc.parseTradeReportUpdateMsg(msgMap)
 	default:
 		err2 = errors.New("event not exist")
 	}
