@@ -489,7 +489,7 @@ func (Mc *MaxClient) GetOpenOrders() (openOrders [][]string, ok bool) {
 	return openOrders, true
 }
 
-// GetTradeReports() ([][]string, bool) // []string{oid, symbol, product, subaccount, price, qty, side, execType, fee, filledQty}
+// GetTradeReports() ([][]string, bool) // []string{oid, symbol, product, subaccount, price, qty, side, execType, fee, filledQty, timestamp, isMaker}
 func (Mc *MaxClient) GetTradeReports() ([][]string, bool) {
 	Mc.TradeReportBranch.Lock()
 	trades := Mc.TradeReportBranch.TradeReports
@@ -514,10 +514,16 @@ func (Mc *MaxClient) GetTradeReports() ([][]string, bool) {
 			execType = "market"
 		}
 
+		isMaker := "false "
+		if trade.Maker {
+			isMaker = "true"
+		}
+		timestamp := strconv.Itoa(int(trade.Timestamp))
+
 		fee := trade.Fee
 		filledQty := trade.Volume
 
-		tradeReport := []string{oid, symbol, product, subaccount, price, qty, side, execType, fee, filledQty}
+		tradeReport := []string{oid, symbol, product, subaccount, price, qty, side, execType, fee, filledQty, timestamp, isMaker}
 
 		tradeReports = append(tradeReports, tradeReport)
 	}
