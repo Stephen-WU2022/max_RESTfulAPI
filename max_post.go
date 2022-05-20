@@ -500,7 +500,7 @@ func (Mc *MaxClient) GetTradeReports() ([][]string, bool) {
 	for i := range trades {
 		trade := trades[i]
 		oid := ""
-		symbol := strings.ToUpper(trade.Market)
+		symbol := trade.Market
 		product := "spot"
 		subaccount := ""
 		price := trade.Price
