@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"log"
 
 	"errors"
 	"fmt"
@@ -695,6 +696,7 @@ func (Mc *MaxClient) handleTradeReportMsg(msg []byte) error {
 	var err2 error
 	switch event {
 	case "authenticated":
+		log.Println("trade report connected.")
 	case "trade_snapshot":
 		err2 = Mc.parseTradeReportSnapshotMsg(msgMap)
 	case "trade_update":
@@ -722,6 +724,7 @@ func (Mc *MaxClient) parseTradeReportUpdateMsg(msgMap map[string]interface{}) er
 	var newTrades []Trade
 	json.Unmarshal(jsonbody, &newTrades)
 	Mc.tradeReportsArrived(newTrades)
+	log.Println("parse trade report", newTrades)
 
 	return nil
 }

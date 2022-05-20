@@ -94,6 +94,7 @@ func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
 	if err != nil {
 		LogFatalToDailyLogFile(errors.New("fail to subscribe websocket"))
 	}
+	
 
 	NoErr := true
 	for NoErr {
