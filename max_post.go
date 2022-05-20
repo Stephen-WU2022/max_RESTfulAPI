@@ -528,5 +528,5 @@ func (Mc *MaxClient) GetTradeReports() ([][]string, bool) {
 		tradeReports = append(tradeReports, tradeReport)
 	}
 
-	return tradeReports, true
+	return tradeReports, len(tradeReports) != 0
 }
