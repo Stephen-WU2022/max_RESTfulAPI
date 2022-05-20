@@ -724,7 +724,6 @@ func (Mc *MaxClient) parseTradeReportUpdateMsg(msgMap map[string]interface{}) er
 	var newTrades []Trade
 	json.Unmarshal(jsonbody, &newTrades)
 	Mc.tradeReportsArrived(newTrades)
-	log.Println("parse trade report", newTrades)
 
 	return nil
 }
