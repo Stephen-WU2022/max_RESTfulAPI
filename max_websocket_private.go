@@ -596,19 +596,21 @@ func (Mc *MaxClient) TradeReportWebsocket(ctx context.Context) {
 	Mc.WsOnErrTurn(false)
 
 	// pint it
-	go func(ctx context.Context) {
+	go func() {
 		for {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				time.Sleep(time.Minute)
-				message := []byte("ping")
-				Mc.WsClient.Conn.WriteMessage(websocket.TextMessage, message)
-				log.Println("ping!")
+			time.Sleep(time.Minute)
+			message := []byte("ping")
+			Mc.WsClient.Conn.WriteMessage(websocket.TextMessage, message)
+			log.Println("ping!")
+
+			Mc.WsClient.onErrMutex.Lock()
+			onErr := Mc.WsClient.OnErr
+			Mc.WsClient.onErrMutex.Unlock()
+			if onErr {
+				break
 			}
 		}
-	}(ctx)
+	}()
 
 	// mainloop
 mainloop:
@@ -657,7 +659,6 @@ mainloop:
 
 	conn.Close()
 	Mc.WsClient.Conn.Close()
-	cancel()
 
 	// if it is manual work.
 	if !Mc.WsClient.OnErr {
