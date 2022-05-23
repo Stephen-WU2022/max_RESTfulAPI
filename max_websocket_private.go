@@ -598,9 +598,7 @@ func (Mc *MaxClient) TradeReportWebsocket(ctx context.Context) {
 	go func() {
 		for {
 			time.Sleep(time.Minute)
-			message := []byte("ping")
-			Mc.WsClient.Conn.WriteMessage(websocket.TextMessage, message)
-			log.Println("ping!")
+			Mc.WsClient.Conn.WriteMessage(websocket.PingMessage, []byte("ping"))
 
 			Mc.WsClient.onErrMutex.Lock()
 			onErr := Mc.WsClient.OnErr
@@ -627,7 +625,7 @@ mainloop:
 
 			msgtype, msg, err := conn.ReadMessage()
 			if err != nil {
-				LogErrorToDailyLogFile("read:", err, string(msg), msgtype)
+				log.Println("read:", err, string(msg), msgtype)
 				Mc.WsOnErrTurn(true)
 				time.Sleep(time.Millisecond * 500)
 				break mainloop
@@ -636,7 +634,7 @@ mainloop:
 			var msgMap map[string]interface{}
 			err = json.Unmarshal(msg, &msgMap)
 			if err != nil {
-				LogWarningToDailyLogFile(err)
+				log.Println(err)
 				Mc.WsOnErrTurn(true)
 				break mainloop
 			}
@@ -723,6 +721,7 @@ func (Mc *MaxClient) handleTradeReportMsg(msg []byte) error {
 		err2 = errors.New("event not exist")
 	}
 	if err2 != nil {
+		fmt.Println(event, string(msg))
 		return errors.New("fail to parse message")
 	}
 	return nil
