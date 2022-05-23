@@ -604,8 +604,9 @@ mainloop:
 			Mc.ShutDown()
 			return
 		case <-ticker.C:
-			message := []byte("ping")
+			message := []byte("pong")
 			Mc.WsClient.Conn.WriteMessage(websocket.TextMessage, message)
+
 		default:
 			if Mc.WsClient.Conn == nil {
 				Mc.WsOnErrTurn(true)
@@ -721,6 +722,7 @@ func (Mc *MaxClient) parseTradeReportSnapshotMsg(msgMap map[string]interface{}) 
 	var newTrades []Trade
 	json.Unmarshal(jsonbody, &newTrades)
 	Mc.trackingTradeReports(newTrades)
+	log.Println("TradeReportSnapshot", newTrades)
 
 	return nil
 }
