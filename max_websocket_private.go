@@ -573,7 +573,7 @@ func (Mc *MaxClient) parseTradeUpdateMsgWithChannel(msgMap map[string]interface{
 
 // trade report
 func (Mc *MaxClient) TradeReportWebsocket(ctx context.Context) {
-	ticker := time.NewTicker(1 * time.Minute)
+	ctx, cancel := context.WithCancel(ctx)
 	var url string = "wss://max-stream.maicoin.com/ws"
 	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
@@ -595,6 +595,18 @@ func (Mc *MaxClient) TradeReportWebsocket(ctx context.Context) {
 
 	Mc.WsOnErrTurn(false)
 
+	// pint it
+	go func(ctx context.Context) {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			message := []byte("ping")
+			Mc.WsClient.Conn.WriteMessage(websocket.TextMessage, message)
+			log.Println("ping!")
+		}
+	}(ctx)
+
 	// mainloop
 mainloop:
 	for {
@@ -603,10 +615,6 @@ mainloop:
 			Mc.WsOnErrTurn(false)
 			Mc.ShutDown()
 			return
-		case <-ticker.C:
-			message := []byte("ping")
-			Mc.WsClient.Conn.WriteMessage(websocket.TextMessage, message)
-			log.Println("ping!")
 		default:
 			if Mc.WsClient.Conn == nil {
 				Mc.WsOnErrTurn(true)
@@ -646,7 +654,7 @@ mainloop:
 
 	conn.Close()
 	Mc.WsClient.Conn.Close()
-	ticker.Stop()
+	cancel()
 
 	// if it is manual work.
 	if !Mc.WsClient.OnErr {
