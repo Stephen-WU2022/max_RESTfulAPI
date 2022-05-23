@@ -584,6 +584,8 @@ func (Mc *MaxClient) TradeReportWebsocket(ctx context.Context) {
 		LogFatalToDailyLogFile(errors.New("fail to construct subscribtion message"))
 	}
 
+	ticker := time.NewTicker(2 * time.Minute)
+
 	err = conn.WriteMessage(websocket.TextMessage, subMsg)
 	if err != nil {
 		LogFatalToDailyLogFile(errors.New("fail to subscribe websocket"))
@@ -602,6 +604,9 @@ mainloop:
 			Mc.WsOnErrTurn(false)
 			Mc.ShutDown()
 			return
+		case <-ticker.C:
+			message := []byte("ping")
+			Mc.WsClient.Conn.WriteMessage(websocket.TextMessage, message)
 		default:
 			if Mc.WsClient.Conn == nil {
 				Mc.WsOnErrTurn(true)
@@ -640,6 +645,7 @@ mainloop:
 
 	conn.Close()
 	Mc.WsClient.Conn.Close()
+	ticker.Stop()
 
 	// if it is manual work.
 	if !Mc.WsClient.OnErr {
