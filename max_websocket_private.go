@@ -607,7 +607,6 @@ mainloop:
 			message := []byte("ping")
 			Mc.WsClient.Conn.WriteMessage(websocket.TextMessage, message)
 			log.Println("ping!")
-
 		default:
 			if Mc.WsClient.Conn == nil {
 				Mc.WsOnErrTurn(true)
