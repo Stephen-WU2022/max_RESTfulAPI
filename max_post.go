@@ -506,25 +506,20 @@ func (Mc *MaxClient) GetTradeReports() ([][]string, bool) {
 		price := trade.Price
 		qty := trade.Volume
 		side := trade.Side
-
 		maker := trade.Maker
-
 		execType := "limit"
 		if !maker {
 			execType = "market"
 		}
-
 		isMaker := "false "
 		if trade.Maker {
 			isMaker = "true"
 		}
 		timestamp := strconv.Itoa(int(trade.Timestamp))
-
 		fee := trade.Fee
 		filledQty := trade.Volume
 
 		tradeReport := []string{oid, symbol, product, subaccount, price, qty, side, execType, fee, filledQty, timestamp, isMaker}
-
 		tradeReports = append(tradeReports, tradeReport)
 	}
 
