@@ -614,6 +614,7 @@ mainloop:
 			}
 
 			msgtype, msg, err := conn.ReadMessage()
+			log.Println(msg)
 			if err != nil {
 				LogErrorToDailyLogFile("read:", err, string(msg), msgtype)
 				Mc.WsOnErrTurn(true)
