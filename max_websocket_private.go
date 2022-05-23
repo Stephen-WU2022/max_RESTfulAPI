@@ -651,7 +651,7 @@ mainloop:
 	Mc.WsClient.TmpBranch.Trades = Mc.ReadTrades()
 	Mc.WsClient.TmpBranch.Unlock()
 
-	Mc.PriviateWebsocket(ctx)
+	Mc.TradeReportWebsocket(ctx)
 }
 
 // provide private subscribtion message.
