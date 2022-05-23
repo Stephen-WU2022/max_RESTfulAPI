@@ -573,7 +573,6 @@ func (Mc *MaxClient) parseTradeUpdateMsgWithChannel(msgMap map[string]interface{
 
 // trade report
 func (Mc *MaxClient) TradeReportWebsocket(ctx context.Context) {
-	ctx, cancel := context.WithCancel(ctx)
 	var url string = "wss://max-stream.maicoin.com/ws"
 	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
