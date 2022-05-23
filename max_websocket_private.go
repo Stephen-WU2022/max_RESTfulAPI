@@ -597,13 +597,16 @@ func (Mc *MaxClient) TradeReportWebsocket(ctx context.Context) {
 
 	// pint it
 	go func(ctx context.Context) {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-			message := []byte("ping")
-			Mc.WsClient.Conn.WriteMessage(websocket.TextMessage, message)
-			log.Println("ping!")
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				time.Sleep(time.Minute)
+				message := []byte("ping")
+				Mc.WsClient.Conn.WriteMessage(websocket.TextMessage, message)
+				log.Println("ping!")
+			}
 		}
 	}(ctx)
 
