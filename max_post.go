@@ -511,7 +511,7 @@ func (Mc *MaxClient) GetTradeReports() ([][]string, bool) {
 		if !maker {
 			execType = "market"
 		}
-		isMaker := "false "
+		isMaker := "false"
 		if trade.Maker {
 			isMaker = "true"
 		}
