@@ -10,7 +10,11 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+
+	jsoniter "github.com/json-iterator/go"
 )
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 func (Mc *MaxClient) Run(ctx context.Context) {
 	go func() {
