@@ -597,7 +597,7 @@ func (Mc *MaxClient) TradeReportWebsocket(ctx context.Context) {
 	// pint it
 	go func() {
 		for {
-			time.Sleep(time.Minute)
+			time.Sleep(time.Minute * 2)
 			Mc.WsClient.Conn.WriteMessage(websocket.PingMessage, []byte("ping"))
 
 			Mc.WsClient.onErrMutex.Lock()

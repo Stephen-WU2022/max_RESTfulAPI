@@ -60,13 +60,13 @@ func SpotLocalOrderbook(symbol string, logger *logrus.Logger) *OrderbookBranch {
 func (o *OrderbookBranch) PingIt(ctx context.Context) {
 	go func() {
 		for {
-			time.Sleep(30 * time.Second)
+			time.Sleep(60 * time.Second)
 			select {
 			case <-ctx.Done():
 				return
 			default:
 				message := []byte("ping")
-				o.conn.WriteMessage(websocket.TextMessage, message)
+				o.conn.WriteMessage(websocket.PingMessage, message)
 			}
 		}
 	}()
