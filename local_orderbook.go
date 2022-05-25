@@ -2,7 +2,6 @@ package max_RESTfulAPI
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
