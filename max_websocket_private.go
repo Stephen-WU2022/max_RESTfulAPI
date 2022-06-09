@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/sirupsen/logrus"
 )
 
 func (Mc *MaxClient) PriviateWebsocket(ctx context.Context) {
@@ -383,21 +384,6 @@ func (Mc *MaxClient) parseAccountMsg(msgMap map[string]interface{}) error {
 	return nil
 }
 
-/* func sellbuyTransfer(side string) (string, error) {
-	switch strings.ToLower(side) {
-	case "sell":
-		return "sell", nil
-	case "buy":
-		return "buy", nil
-	case "bid":
-		return "buy", nil
-	case "ask":
-		return "sell", nil
-	}
-	return "", errors.New("unrecognized side appear")
-}
-*/
-
 func (Mc *MaxClient) WsOnErrTurn(b bool) {
 	Mc.WsClient.onErrMutex.Lock()
 	defer Mc.WsClient.onErrMutex.Unlock()
@@ -443,7 +429,7 @@ mainloop:
 
 			msgtype, msg, err := conn.ReadMessage()
 			if err != nil {
-				LogErrorToDailyLogFile("read:", err, string(msg), msgtype)
+				LogErrorToDailyLogFile("PriviateWebsocketWithChannel read:", err, string(msg), msgtype)
 				Mc.WsOnErrTurn(true)
 				time.Sleep(time.Millisecond * 500)
 				break mainloop
@@ -471,7 +457,6 @@ mainloop:
 		time.Sleep(time.Millisecond)
 	} // end for
 
-	conn.Close()
 	Mc.WsClient.Conn.Close()
 
 	// if it is manual work.
@@ -654,7 +639,6 @@ mainloop:
 		time.Sleep(time.Millisecond)
 	} // end for
 
-	conn.Close()
 	Mc.WsClient.Conn.Close()
 
 	// if it is manual work.
@@ -712,7 +696,7 @@ func (Mc *MaxClient) handleTradeReportMsg(msg []byte) error {
 	var err2 error
 	switch event {
 	case "authenticated":
-		log.Println("trade report connected.")
+		logrus.Info("MAX trade report websocket connected")
 	case "trade_snapshot":
 		err2 = Mc.parseTradeReportSnapshotMsg(msgMap)
 	case "trade_update":

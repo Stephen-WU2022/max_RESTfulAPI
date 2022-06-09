@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-
 	jsoniter "github.com/json-iterator/go"
 )
 

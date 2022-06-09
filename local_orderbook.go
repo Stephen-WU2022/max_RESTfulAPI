@@ -103,7 +103,7 @@ func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
 		default:
 			_, msg, err := o.conn.ReadMessage()
 			if err != nil {
-				LogErrorToDailyLogFile("read:", err)
+				LogErrorToDailyLogFile("orderbook maintain read:", err)
 				o.onErrBranch.mutex.Lock()
 				o.onErrBranch.onErr = true
 				o.onErrBranch.mutex.Unlock()
@@ -129,8 +129,6 @@ func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
 
 		// if there is something wrong that the WS should be reconnected.
 		if o.onErrBranch.onErr {
-			//message := "max websocket reconnecting"
-			//LogInfoToDailyLogFile(message)
 			NoErr = false
 		}
 		time.Sleep(time.Millisecond)
@@ -182,7 +180,7 @@ func (o *OrderbookBranch) handleMaxBookSocketMsg(msg []byte) error {
 	var err2 error
 	switch event {
 	case "subscribed":
-		//LogInfoToDailyLogFile("websocket subscribed")
+		logrus.Info("Max", o.Market, "orderbook websocket connected.")
 	case "snapshot":
 		err2 = o.parseOrderbookSnapshotMsg(msgMap)
 	case "update":
