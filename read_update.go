@@ -242,7 +242,7 @@ func (Mc *MaxClient) checkBalanceEnoughLocal(market, side string, price, volume 
 
 	base, quote, err := Mc.checkBaseQuote(market)
 	if err != nil {
-		LogErrorToDailyLogFile(err)
+		LogWarningToDailyLogFile(err)
 		return false
 	}
 	balance := Mc.ReadBalance()

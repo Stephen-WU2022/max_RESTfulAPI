@@ -103,7 +103,7 @@ func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
 		default:
 			_, msg, err := o.conn.ReadMessage()
 			if err != nil {
-				LogErrorToDailyLogFile("orderbook maintain read:", err)
+				LogWarningToDailyLogFile("orderbook maintain read:", err)
 				o.onErrBranch.mutex.Lock()
 				o.onErrBranch.onErr = true
 				o.onErrBranch.mutex.Unlock()
@@ -166,7 +166,7 @@ func (o *OrderbookBranch) handleMaxBookSocketMsg(msg []byte) error {
 	var msgMap map[string]interface{}
 	err := json.Unmarshal(msg, &msgMap)
 	if err != nil {
-		LogErrorToDailyLogFile(err)
+		LogWarningToDailyLogFile(err)
 		return errors.New("fail to unmarshal message")
 	}
 

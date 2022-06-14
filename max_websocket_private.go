@@ -56,7 +56,7 @@ mainloop:
 
 			msgtype, msg, err := conn.ReadMessage()
 			if err != nil {
-				LogErrorToDailyLogFile("read:", err, string(msg), msgtype)
+				LogWarningToDailyLogFile("read:", err, string(msg), msgtype)
 				Mc.WsOnErrTurn(true)
 				time.Sleep(time.Millisecond * 500)
 				break mainloop
@@ -152,7 +152,7 @@ func (Mc *MaxClient) handleMaxSocketMsg(msg []byte) error {
 	var msgMap map[string]interface{}
 	err := json.Unmarshal(msg, &msgMap)
 	if err != nil {
-		LogErrorToDailyLogFile(err)
+		LogWarningToDailyLogFile(err)
 		return errors.New("fail to unmarshal message")
 	}
 
@@ -429,7 +429,7 @@ mainloop:
 
 			msgtype, msg, err := conn.ReadMessage()
 			if err != nil {
-				LogErrorToDailyLogFile("PriviateWebsocketWithChannel read:", err, string(msg), msgtype)
+				LogWarningToDailyLogFile("PriviateWebsocketWithChannel read:", err, string(msg), msgtype)
 				Mc.WsOnErrTurn(true)
 				time.Sleep(time.Millisecond * 500)
 				break mainloop
@@ -475,7 +475,7 @@ func (Mc *MaxClient) handleMaxSocketMsgWithChannel(msg []byte, tradeChan chan []
 	var msgMap map[string]interface{}
 	err := json.Unmarshal(msg, &msgMap)
 	if err != nil {
-		LogErrorToDailyLogFile(err)
+		LogWarningToDailyLogFile(err)
 		return errors.New("fail to unmarshal message")
 	}
 
@@ -682,7 +682,7 @@ func (Mc *MaxClient) handleTradeReportMsg(msg []byte) error {
 	var msgMap map[string]interface{}
 	err := json.Unmarshal(msg, &msgMap)
 	if err != nil {
-		LogErrorToDailyLogFile(err)
+		LogWarningToDailyLogFile(err)
 		return errors.New("fail to unmarshal message")
 	}
 
