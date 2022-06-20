@@ -98,6 +98,13 @@ func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
 			o.conn.Close()
 			return
 		default:
+			o.onErrBranch.mutex.Lock()
+			onErr := o.onErrBranch.onErr
+			o.onErrBranch.mutex.Unlock()
+			if onErr {
+				continue
+			}
+
 			_, msg, err := o.conn.ReadMessage()
 			if err != nil {
 				log.Print("orderbook maintain read:", err)
@@ -105,6 +112,7 @@ func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
 				o.onErrBranch.onErr = true
 				o.onErrBranch.mutex.Unlock()
 				time.Sleep(time.Second)
+				continue
 			}
 
 			errh := o.handleMaxBookSocketMsg(msg)
@@ -113,6 +121,7 @@ func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
 				o.onErrBranch.onErr = true
 				o.onErrBranch.mutex.Unlock()
 				time.Sleep(time.Second)
+				continue
 			}
 
 		} // end select
