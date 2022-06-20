@@ -89,6 +89,7 @@ func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
 	if err != nil {
 		log.Print(errors.New("fail to subscribe websocket"))
 	}
+	time.Sleep(time.Second)
 
 	NoErr := true
 	for NoErr {
@@ -103,6 +104,7 @@ func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
 				o.onErrBranch.mutex.Lock()
 				o.onErrBranch.onErr = true
 				o.onErrBranch.mutex.Unlock()
+				time.Sleep(time.Second)
 			}
 
 			errh := o.handleMaxBookSocketMsg(msg)
@@ -110,6 +112,7 @@ func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
 				o.onErrBranch.mutex.Lock()
 				o.onErrBranch.onErr = true
 				o.onErrBranch.mutex.Unlock()
+				time.Sleep(time.Second)
 			}
 
 		} // end select
