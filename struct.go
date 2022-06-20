@@ -155,6 +155,7 @@ type WsOrder struct {
 
 type Trade struct {
 	Id          int64  `json:"i,omitempty"`
+	Oid         int64  `json:oi,omitempty`
 	Price       string `json:"p,omitempty"`
 	Volume      string `json:"v,omitempty"`
 	Market      string `json:"M,omitempty"`

@@ -479,7 +479,7 @@ func (Mc *MaxClient) GetTradeReports() ([][]string, bool) {
 	var tradeReports [][]string
 	for i := range trades {
 		trade := trades[i]
-		oid := fmt.Sprint(trade.Id)
+		oid := fmt.Sprint(trade.Oid)
 		symbol := trade.Market
 		product := "spot"
 		subaccount := ""
