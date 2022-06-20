@@ -33,7 +33,7 @@ type TradeStreamBranch struct {
 	}
 }
 
-func MaxSubscribeTradeMessage(symbol string) ([]byte, error) {
+func maxSubscribeTradeMessage(symbol string) ([]byte, error) {
 	var args []map[string]interface{}
 	subscriptions := make(map[string]interface{})
 	subscriptions["channel"] = "trade"
@@ -50,7 +50,7 @@ func MaxSubscribeTradeMessage(symbol string) ([]byte, error) {
 	return req, nil
 }
 
-func (o *TradeStreamBranch) PingIt(ctx context.Context) {
+func (o *TradeStreamBranch) ping(ctx context.Context) {
 	go func() {
 		for {
 			time.Sleep(30 * time.Second)
@@ -75,7 +75,7 @@ func SpotTradeStream(symbol string, logger *logrus.Logger) *TradeStreamBranch {
 	go o.listen(ctx)
 
 	time.Sleep(1 * time.Second)
-	go o.PingIt(ctx)
+	go o.ping(ctx)
 
 	return &o
 }
@@ -93,7 +93,7 @@ func (o *TradeStreamBranch) maintain(ctx context.Context, symbol string) {
 	o.onErrBranch.onErr = false
 	o.onErrBranch.mutex.Unlock()
 
-	subMsg, err := MaxSubscribeTradeMessage(symbol)
+	subMsg, err := maxSubscribeTradeMessage(symbol)
 	if err != nil {
 		LogFatalToDailyLogFile(errors.New("fail to construct subscribtion message"))
 	}

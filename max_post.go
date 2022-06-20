@@ -417,26 +417,6 @@ func (Mc *MaxClient) PlaceMarketOrder(market string, side string, volume float64
 	return WsOrder(order), nil
 }
 
-/*
-func (Mc MaxClient) PlaceMakerOrder(market string, side string, volume float64) error {
-	orderbook := SpotLocalOrderbook(strings.ToLower(market), logrus.New())
-	time.Sleep(2 * time.Second)
-
-	for {}
-	asks, ok := orderbook.GetAsks()
-	if ok {
-		fmt.Println("ask")
-		fmt.Println(asks)
-	}
-
-	bids, ok := orderbook.GetBids()
-	if ok {
-		fmt.Println("bid")
-		fmt.Println(bids)
-	}
-}
-*/
-
 // for modularized arbitrage framework
 // GetBalances() ([][]string, bool)     // []string{asset, available, total}
 func (Mc *MaxClient) GetBalances() (balances [][]string, ok bool) {

@@ -22,17 +22,17 @@ func (Mc *MaxClient) PriviateWebsocket(ctx context.Context) {
 	var url string = "wss://max-stream.maicoin.com/ws"
 	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
-		LogFatalToDailyLogFile(err)
+		log.Fatal(err)
 	}
 
 	subMsg, err := GetMaxSubscribePrivateMessage(Mc.apiKey, Mc.apiSecret)
 	if err != nil {
-		LogFatalToDailyLogFile(errors.New("fail to construct subscribtion message"))
+		log.Fatal(errors.New("fail to construct subscribtion message"))
 	}
 
 	err = conn.WriteMessage(websocket.TextMessage, subMsg)
 	if err != nil {
-		LogFatalToDailyLogFile(errors.New("fail to subscribe websocket"))
+		log.Fatal(errors.New("fail to subscribe websocket"))
 	}
 	Mc.WsClient.connMutex.Lock()
 	Mc.WsClient.Conn = conn
@@ -202,12 +202,6 @@ func (Mc *MaxClient) parseOrderSnapshotMsg(msgMap map[string]interface{}) error 
 
 	Mc.UpdateOrders(snapshotWsOrders)
 
-	/* // checking trades situation.
-	err := Mc.trackingOrders(snapshotWsOrders)
-	if err != nil {
-		log.Print("fail to check the trades during disconnection")
-	} */
-
 	return nil
 }
 
@@ -267,41 +261,6 @@ func (Mc *MaxClient) parseTradeSnapshotMsg(msgMap map[string]interface{}) error 
 
 	return nil
 }
-
-/* func (Mc *MaxClient) trackingOrders(snapshotWsOrders map[int64]WsOrder) error {
-	Mc.WsClient.TmpBranch.Lock()
-	defer Mc.WsClient.TmpBranch.Unlock()
-
-	// if there is not orders in the tmp memory, it is not possible to track the trades during WS is disconnected.
-	if len(Mc.WsClient.TmpBranch.Orders) == 0 {
-		Mc.UpdateOrders(snapshotWsOrders)
-		return nil
-	}
-
-	untrackedWsOrders := map[int64]WsOrder{}
-	trackedWsOrders := map[int64]WsOrder{}
-
-	for wsorderId, wsorder := range Mc.WsClient.TmpBranch.Orders {
-		if _, ok := snapshotWsOrders[wsorderId]; ok && wsorder.State != "Done" {
-			trackedWsOrders[wsorderId] = wsorder
-		} else {
-			untrackedWsOrders[wsorderId] = wsorder
-		}
-	}
-
-	Mc.UpdateOrders(trackedWsOrders)
-
-	Mc.FilledOrdersBranch.Lock()
-	defer Mc.FilledOrdersBranch.Unlock()
-	for id, odr := range untrackedWsOrders {
-		if _, ok := Mc.FilledOrdersBranch.Filled[id]; !ok {
-			Mc.FilledOrdersBranch.Filled[id] = odr
-		}
-	}
-
-	return nil
-}
-*/
 
 func (Mc *MaxClient) trackingTrades(snapshottrades []Trade) error {
 	Mc.WsClient.TmpBranch.Lock()
@@ -395,17 +354,17 @@ func (Mc *MaxClient) PriviateWebsocketWithChannel(ctx context.Context, tradeChan
 	var url string = "wss://max-stream.maicoin.com/ws"
 	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
-		LogFatalToDailyLogFile(err)
+		log.Fatal(err)
 	}
 
 	subMsg, err := GetMaxSubscribePrivateMessage(Mc.apiKey, Mc.apiSecret)
 	if err != nil {
-		LogFatalToDailyLogFile(errors.New("fail to construct subscribtion message"))
+		log.Fatal(errors.New("fail to construct subscribtion message"))
 	}
 
 	err = conn.WriteMessage(websocket.TextMessage, subMsg)
 	if err != nil {
-		LogFatalToDailyLogFile(errors.New("fail to subscribe websocket"))
+		log.Fatal(errors.New("fail to subscribe websocket"))
 	}
 	Mc.WsClient.connMutex.Lock()
 	Mc.WsClient.Conn = conn
@@ -561,22 +520,21 @@ func (Mc *MaxClient) TradeReportWebsocket(ctx context.Context) {
 	var url string = "wss://max-stream.maicoin.com/ws"
 	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
-		LogFatalToDailyLogFile(err)
+		log.Fatal(err)
 	}
 
 	subMsg, err := TradeReportSubscribeMessage(Mc.apiKey, Mc.apiSecret)
 	if err != nil {
-		LogFatalToDailyLogFile(errors.New("fail to construct subscribtion message"))
+		log.Fatal(errors.New("fail to construct subscribtion message"))
 	}
 
 	err = conn.WriteMessage(websocket.TextMessage, subMsg)
 	if err != nil {
-		LogFatalToDailyLogFile(errors.New("fail to subscribe websocket"))
+		log.Fatal(errors.New("fail to subscribe websocket"))
 	}
 	Mc.WsClient.connMutex.Lock()
 	Mc.WsClient.Conn = conn
 	Mc.WsClient.connMutex.Unlock()
-
 	Mc.WsOnErrTurn(false)
 
 	// pint it
@@ -584,7 +542,6 @@ func (Mc *MaxClient) TradeReportWebsocket(ctx context.Context) {
 		for {
 			time.Sleep(time.Minute * 2)
 			Mc.WsClient.Conn.WriteMessage(websocket.PingMessage, []byte("ping"))
-
 			Mc.WsClient.onErrMutex.Lock()
 			onErr := Mc.WsClient.OnErr
 			Mc.WsClient.onErrMutex.Unlock()

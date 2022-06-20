@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"sync"
 	"time"
@@ -39,12 +40,6 @@ type bookstruct struct {
 	Timestamp int64      `json:"T,omitempty"`
 }
 
-type bookBranch struct {
-	mux   sync.RWMutex
-	Book  [][]string
-	Micro []string
-}
-
 func SpotLocalOrderbook(symbol string, logger *logrus.Logger) *OrderbookBranch {
 	var o OrderbookBranch
 	ctx, cancel := context.WithCancel(context.Background())
@@ -53,10 +48,11 @@ func SpotLocalOrderbook(symbol string, logger *logrus.Logger) *OrderbookBranch {
 	o.asks = *mapbook.NewAskBook(false)
 	o.bids = *mapbook.NewBidBook(false)
 	go o.maintain(ctx, symbol)
+	go o.ping(ctx)
 	return &o
 }
 
-func (o *OrderbookBranch) PingIt(ctx context.Context) {
+func (o *OrderbookBranch) ping(ctx context.Context) {
 	go func() {
 		for {
 			time.Sleep(60 * time.Second)
@@ -76,7 +72,7 @@ func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
 
 	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
-		LogFatalToDailyLogFile(err)
+		log.Print(err)
 	}
 	//LogInfoToDailyLogFile("Connected:", url)
 	o.conn = conn
@@ -84,14 +80,14 @@ func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
 	o.onErrBranch.onErr = false
 	o.onErrBranch.mutex.Unlock()
 
-	subMsg, err := MaxSubscribeBookMessage(symbol)
+	subMsg, err := maxSubscribeBookMessage(symbol)
 	if err != nil {
-		LogFatalToDailyLogFile(errors.New("fail to construct subscribtion message"))
+		log.Print(errors.New("fail to construct subscribtion message"))
 	}
 
 	err = conn.WriteMessage(websocket.TextMessage, subMsg)
 	if err != nil {
-		LogFatalToDailyLogFile(errors.New("fail to subscribe websocket"))
+		log.Print(errors.New("fail to subscribe websocket"))
 	}
 
 	NoErr := true
@@ -103,16 +99,7 @@ func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
 		default:
 			_, msg, err := o.conn.ReadMessage()
 			if err != nil {
-				LogWarningToDailyLogFile("orderbook maintain read:", err)
-				o.onErrBranch.mutex.Lock()
-				o.onErrBranch.onErr = true
-				o.onErrBranch.mutex.Unlock()
-			}
-
-			var msgMap map[string]interface{}
-			err = json.Unmarshal(msg, &msgMap)
-			if err != nil {
-				LogWarningToDailyLogFile(err)
+				log.Print("orderbook maintain read:", err)
 				o.onErrBranch.mutex.Lock()
 				o.onErrBranch.onErr = true
 				o.onErrBranch.mutex.Unlock()
@@ -143,7 +130,7 @@ func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
 }
 
 // default for the depth 10 (max).
-func MaxSubscribeBookMessage(symbol string) ([]byte, error) {
+func maxSubscribeBookMessage(symbol string) ([]byte, error) {
 	param := make(map[string]interface{})
 	param["action"] = "sub"
 
@@ -166,13 +153,13 @@ func (o *OrderbookBranch) handleMaxBookSocketMsg(msg []byte) error {
 	var msgMap map[string]interface{}
 	err := json.Unmarshal(msg, &msgMap)
 	if err != nil {
-		LogWarningToDailyLogFile(err)
+		log.Print(err)
 		return errors.New("fail to unmarshal message")
 	}
 
 	event, ok := msgMap["e"]
 	if !ok {
-		LogWarningToDailyLogFile("there is no event in message")
+		log.Print("there is no event in message")
 		return errors.New("fail to obtain message")
 	}
 
@@ -212,8 +199,10 @@ func (o *OrderbookBranch) parseOrderbookUpdateMsg(msgMap map[string]interface{})
 
 	wrongTime := false
 	o.lastUpdatedTimestampBranch.mux.Lock()
-
-	if book.Timestamp < o.lastUpdatedTimestampBranch.timestamp {
+	if time.Now().UnixMilli()-book.Timestamp > 5000 {
+		o.lastUpdatedTimestampBranch.timestamp = book.Timestamp
+		wrongTime = true
+	} else if book.Timestamp < o.lastUpdatedTimestampBranch.timestamp {
 		wrongTime = true
 	} else {
 		o.lastUpdatedTimestampBranch.timestamp = book.Timestamp
@@ -221,9 +210,13 @@ func (o *OrderbookBranch) parseOrderbookUpdateMsg(msgMap map[string]interface{})
 	o.lastUpdatedTimestampBranch.mux.Unlock()
 
 	if wrongTime {
+		o.onErrBranch.mutex.Lock()
+		o.onErrBranch.onErr = true
+		o.onErrBranch.mutex.Unlock()
 		return nil
 	}
 
+	// update
 	o.asks.Update(book.Asks)
 	o.bids.Update(book.Bids)
 
@@ -251,7 +244,13 @@ func (o *OrderbookBranch) parseOrderbookSnapshotMsg(msgMap map[string]interface{
 	o.bids.Snapshot(book.Bids)
 
 	o.lastUpdatedTimestampBranch.mux.Lock()
+	if time.Now().UnixMilli()-book.Timestamp > 5000 {
+		o.onErrBranch.mutex.Lock()
+		o.onErrBranch.onErr = true
+		o.onErrBranch.mutex.Unlock()
+	}
 	o.lastUpdatedTimestampBranch.timestamp = book.Timestamp
+
 	o.lastUpdatedTimestampBranch.mux.Unlock()
 
 	return nil
