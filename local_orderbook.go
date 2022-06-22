@@ -102,7 +102,7 @@ func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
 			onErr := o.onErrBranch.onErr
 			o.onErrBranch.mutex.Unlock()
 			if onErr {
-				continue
+				break
 			}
 
 			_, msg, err := o.conn.ReadMessage()
@@ -112,7 +112,7 @@ func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
 				o.onErrBranch.onErr = true
 				o.onErrBranch.mutex.Unlock()
 				time.Sleep(time.Second)
-				continue
+				break
 			}
 
 			errh := o.handleMaxBookSocketMsg(msg)
@@ -121,7 +121,6 @@ func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
 				o.onErrBranch.onErr = true
 				o.onErrBranch.mutex.Unlock()
 				time.Sleep(time.Second)
-				continue
 			}
 
 		} // end select
@@ -138,7 +137,7 @@ func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
 	if !o.onErrBranch.onErr {
 		return
 	}
-	o.maintain(ctx, symbol)
+	go o.maintain(ctx, symbol)
 }
 
 // default for the depth 10 (max).

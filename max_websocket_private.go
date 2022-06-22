@@ -573,14 +573,6 @@ mainloop:
 				break mainloop
 			}
 
-			var msgMap map[string]interface{}
-			err = json.Unmarshal(msg, &msgMap)
-			if err != nil {
-				log.Println(err)
-				Mc.WsOnErrTurn(true)
-				break mainloop
-			}
-
 			errh := Mc.handleTradeReportMsg(msg)
 			if errh != nil {
 				log.Println(errh)
@@ -608,7 +600,9 @@ mainloop:
 	Mc.WsClient.TmpBranch.Trades = Mc.ReadTrades()
 	Mc.WsClient.TmpBranch.Unlock()
 
-	Mc.TradeReportWebsocket(ctx)
+	time.Sleep(time.Millisecond * 200)
+
+	go Mc.TradeReportWebsocket(ctx)
 }
 
 // provide private subscribtion message.
