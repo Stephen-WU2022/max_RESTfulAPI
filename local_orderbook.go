@@ -48,23 +48,7 @@ func SpotLocalOrderbook(symbol string, logger *logrus.Logger) *OrderbookBranch {
 	o.asks = *mapbook.NewAskBook(false)
 	o.bids = *mapbook.NewBidBook(false)
 	go o.maintain(ctx, symbol)
-	go o.ping(ctx)
 	return &o
-}
-
-func (o *OrderbookBranch) ping(ctx context.Context) {
-	go func() {
-		for {
-			time.Sleep(60 * time.Second)
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				message := []byte("ping")
-				o.conn.WriteMessage(websocket.PingMessage, message)
-			}
-		}
-	}()
 }
 
 func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
@@ -91,8 +75,27 @@ func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
 	}
 	time.Sleep(time.Second)
 
-	NoErr := true
-	for NoErr {
+	go func() {
+		for {
+			time.Sleep(60 * time.Second)
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				message := []byte("ping")
+				o.conn.WriteMessage(websocket.PingMessage, message)
+
+				o.onErrBranch.mutex.RLock()
+				onErr := o.onErrBranch.onErr
+				o.onErrBranch.mutex.RUnlock()
+				if onErr {
+					return
+				}
+			}
+		}
+	}()
+
+	for {
 		select {
 		case <-ctx.Done():
 			o.conn.Close()
@@ -117,6 +120,7 @@ func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
 
 			errh := o.handleMaxBookSocketMsg(msg)
 			if errh != nil {
+				log.Println("orderbook maintain handle:", errh)
 				o.onErrBranch.mutex.Lock()
 				o.onErrBranch.onErr = true
 				o.onErrBranch.mutex.Unlock()
@@ -127,7 +131,7 @@ func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
 
 		// if there is something wrong that the WS should be reconnected.
 		if o.onErrBranch.onErr {
-			NoErr = false
+			break
 		}
 		time.Sleep(time.Millisecond)
 	} // end for
