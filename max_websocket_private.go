@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/sirupsen/logrus"
 )
 
 func (Mc *MaxClient) PriviateWebsocket(ctx context.Context) {
@@ -647,7 +646,7 @@ func (Mc *MaxClient) handleTradeReportMsg(msg []byte) error {
 	var err2 error
 	switch event {
 	case "authenticated":
-		logrus.Info("MAX trade report websocket connected")
+		log.Print("MAX trade report websocket connected")
 	case "trade_snapshot":
 		err2 = Mc.parseTradeReportSnapshotMsg(msgMap)
 	case "trade_update":

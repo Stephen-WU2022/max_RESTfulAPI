@@ -175,7 +175,7 @@ func (o *OrderbookBranch) handleMaxBookSocketMsg(msg []byte) error {
 	var err2 error
 	switch event {
 	case "subscribed":
-		logrus.Info("Max ", o.Market, " orderbook websocket connected.")
+		log.Println("Max", o.Market, "orderbook websocket connected.")
 	case "snapshot":
 		err2 = o.parseOrderbookSnapshotMsg(msgMap)
 	case "update":
