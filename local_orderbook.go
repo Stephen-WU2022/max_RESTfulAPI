@@ -48,6 +48,19 @@ func SpotLocalOrderbook(symbol string, logger *logrus.Logger) *OrderbookBranch {
 	o.asks = *mapbook.NewAskBook(false)
 	o.bids = *mapbook.NewBidBook(false)
 	go o.maintain(ctx, symbol)
+
+	go func() {
+		for {
+			time.Sleep(60 * time.Second)
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				message := []byte("ping")
+				o.conn.WriteMessage(websocket.PingMessage, message)
+			}
+		}
+	}()
 	return &o
 }
 
@@ -74,26 +87,6 @@ func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
 		log.Print(errors.New("fail to subscribe websocket"))
 	}
 	time.Sleep(time.Second)
-
-	go func() {
-		for {
-			time.Sleep(60 * time.Second)
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				message := []byte("ping")
-				o.conn.WriteMessage(websocket.PingMessage, message)
-
-				o.onErrBranch.mutex.RLock()
-				onErr := o.onErrBranch.onErr
-				o.onErrBranch.mutex.RUnlock()
-				if onErr {
-					return
-				}
-			}
-		}
-	}()
 
 	for {
 		select {
