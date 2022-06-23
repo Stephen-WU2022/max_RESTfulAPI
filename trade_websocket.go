@@ -13,8 +13,11 @@ import (
 )
 
 type TradeStreamBranch struct {
-	cancel      *context.CancelFunc
-	conn        *websocket.Conn
+	cancel     *context.CancelFunc
+	ConnBranch struct {
+		conn *websocket.Conn
+		sync.Mutex
+	}
 	onErrBranch struct {
 		onErr bool
 		mutex sync.RWMutex
@@ -59,7 +62,7 @@ func (o *TradeStreamBranch) ping(ctx context.Context) {
 				return
 			default:
 				message := []byte("ping")
-				o.conn.WriteMessage(websocket.TextMessage, message)
+				o.ConnBranch.conn.WriteMessage(websocket.TextMessage, message)
 			}
 		}
 	}()
@@ -88,7 +91,7 @@ func (o *TradeStreamBranch) maintain(ctx context.Context, symbol string) {
 		LogFatalToDailyLogFile(err)
 	}
 	//LogInfoToDailyLogFile("Connected:", url)
-	o.conn = conn
+	o.ConnBranch.conn = conn
 	o.onErrBranch.mutex.Lock()
 	o.onErrBranch.onErr = false
 	o.onErrBranch.mutex.Unlock()
@@ -97,8 +100,9 @@ func (o *TradeStreamBranch) maintain(ctx context.Context, symbol string) {
 	if err != nil {
 		LogFatalToDailyLogFile(errors.New("fail to construct subscribtion message"))
 	}
-
-	err = conn.WriteMessage(websocket.TextMessage, subMsg)
+	o.ConnBranch.Lock()
+	err = o.ConnBranch.conn.WriteMessage(websocket.TextMessage, subMsg)
+	o.ConnBranch.Unlock()
 	if err != nil {
 		LogFatalToDailyLogFile(errors.New("fail to subscribe websocket"))
 	}
@@ -107,10 +111,14 @@ func (o *TradeStreamBranch) maintain(ctx context.Context, symbol string) {
 	for NoErr {
 		select {
 		case <-ctx.Done():
-			o.conn.Close()
+			o.ConnBranch.Lock()
+			o.ConnBranch.conn.Close()
+			o.ConnBranch.Unlock()
 			return
 		default:
-			_, msg, err := o.conn.ReadMessage()
+			o.ConnBranch.Lock()
+			_, msg, err := o.ConnBranch.conn.ReadMessage()
+			o.ConnBranch.Unlock()
 			if err != nil {
 				LogWarningToDailyLogFile("read:", err)
 				o.onErrBranch.mutex.Lock()
@@ -144,7 +152,9 @@ func (o *TradeStreamBranch) maintain(ctx context.Context, symbol string) {
 		}
 		time.Sleep(time.Millisecond)
 	} // end for
-	o.conn.Close()
+	o.ConnBranch.Lock()
+	o.ConnBranch.conn.Close()
+	o.ConnBranch.Unlock()
 
 	if !o.onErrBranch.onErr {
 		return

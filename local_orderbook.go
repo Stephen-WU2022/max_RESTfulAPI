@@ -15,8 +15,12 @@ import (
 )
 
 type OrderbookBranch struct {
-	cancel      *context.CancelFunc
-	conn        *websocket.Conn
+	cancel     *context.CancelFunc
+	ConnBranch struct {
+		conn *websocket.Conn
+		sync.Mutex
+	}
+
 	onErrBranch struct {
 		onErr bool
 		mutex sync.RWMutex
@@ -57,7 +61,10 @@ func SpotLocalOrderbook(symbol string, logger *logrus.Logger) *OrderbookBranch {
 				return
 			default:
 				message := []byte("ping")
-				o.conn.WriteMessage(websocket.PingMessage, message)
+
+				o.ConnBranch.Lock()
+				o.ConnBranch.conn.WriteMessage(websocket.PingMessage, message)
+				o.ConnBranch.Unlock()
 			}
 		}
 	}()
@@ -72,7 +79,7 @@ func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
 		log.Print(err)
 	}
 	//LogInfoToDailyLogFile("Connected:", url)
-	o.conn = conn
+	o.ConnBranch.conn = conn
 	o.onErrBranch.mutex.Lock()
 	o.onErrBranch.onErr = false
 	o.onErrBranch.mutex.Unlock()
@@ -91,7 +98,9 @@ func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
 	for {
 		select {
 		case <-ctx.Done():
-			o.conn.Close()
+			o.ConnBranch.Lock()
+			o.ConnBranch.conn.Close()
+			o.ConnBranch.Unlock()
 			return
 		default:
 			o.onErrBranch.mutex.Lock()
@@ -101,7 +110,9 @@ func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
 				break
 			}
 
-			_, msg, err := o.conn.ReadMessage()
+			o.ConnBranch.Lock()
+			_, msg, err := o.ConnBranch.conn.ReadMessage()
+			o.ConnBranch.Unlock()
 			if err != nil {
 				log.Print("orderbook maintain read:", err)
 				o.onErrBranch.mutex.Lock()
@@ -129,7 +140,9 @@ func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
 		time.Sleep(time.Millisecond)
 	} // end for
 
-	o.conn.Close()
+	o.ConnBranch.Lock()
+	o.ConnBranch.conn.Close()
+	o.ConnBranch.Unlock()
 
 	if !o.onErrBranch.onErr {
 		return
@@ -273,6 +286,8 @@ func (o *OrderbookBranch) GetAsks() ([][]string, bool) {
 }
 
 func (o *OrderbookBranch) Close() {
-	o.conn.Close()
+	o.ConnBranch.Lock()
+	o.ConnBranch.conn.Close()
+	o.ConnBranch.Unlock()
 	(*o.cancel)()
 }
