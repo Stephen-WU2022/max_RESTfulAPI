@@ -19,7 +19,7 @@ import (
 func (Mc *MaxClient) TradeReportStream(ctx context.Context) {
 	go Mc.TradeReportWebsocket(ctx)
 
-	// pint it
+	/* // pint it
 	go func() {
 		for {
 			select {
@@ -34,7 +34,7 @@ func (Mc *MaxClient) TradeReportStream(ctx context.Context) {
 				Mc.WsClient.connMutex.Unlock()
 			}
 		}
-	}()
+	}() */
 }
 
 // trade report
@@ -58,6 +58,8 @@ func (Mc *MaxClient) TradeReportWebsocket(ctx context.Context) {
 	Mc.WsClient.Conn = conn
 	Mc.WsClient.connMutex.Unlock()
 	Mc.wsOnErrTurn(false)
+
+	Mc.WsClient.Conn.SetPingHandler(nil)
 
 	// mainloop
 mainloop:

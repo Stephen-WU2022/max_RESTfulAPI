@@ -61,7 +61,6 @@ func SpotLocalOrderbook(symbol string, logger *logrus.Logger) *OrderbookBranch {
 				return
 			default:
 				message := []byte("ping")
-
 				o.ConnBranch.Lock()
 				o.ConnBranch.conn.WriteMessage(websocket.PingMessage, message)
 				o.ConnBranch.Unlock()
