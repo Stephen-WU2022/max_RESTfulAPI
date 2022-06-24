@@ -268,6 +268,7 @@ func (o *OrderbookBranch) parseOrderbookSnapshotMsg(msgMap map[string]interface{
 	if time.Now().UnixMilli()-book.Timestamp > 5000 {
 		o.onErrBranch.mutex.Lock()
 		o.onErrBranch.onErr = true
+		log.Println("❌ max book websocket data delay more than 5 sec")
 		o.onErrBranch.mutex.Unlock()
 	}
 	o.lastUpdatedTimestampBranch.timestamp = book.Timestamp

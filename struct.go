@@ -44,27 +44,17 @@ type MaxClient struct {
 
 		TmpBranch struct {
 			Trades []Trade
-			Orders map[int64]WsOrder
 			sync.RWMutex
 		}
 	}
 
+	TradeReportBranch struct {
+		TradeReports []Trade
+		sync.RWMutex
+	}
+
 	// api client
 	ApiClient *APIClient
-
-	// limit unfilled orders
-	OrdersBranch struct {
-		Orders       map[int64]WsOrder
-		OrderNumbers map[string]NumbersOfOrder
-		sync.RWMutex
-	}
-
-	// filled orders
-	FilledOrdersBranch struct {
-		Filled  map[int64]WsOrder
-		Partial map[int64]WsOrder
-		sync.RWMutex
-	}
 
 	TradeBranch struct {
 		UnhedgeTrades []Trade
@@ -75,23 +65,6 @@ type MaxClient struct {
 	// All markets pairs
 	MarketsBranch struct {
 		Markets []Market
-		sync.RWMutex
-	}
-
-	// Account
-	AccountBranch struct {
-		Account Member
-		sync.RWMutex
-	}
-
-	// local balance
-	BalanceBranch struct {
-		Balance map[string]Balance // currency balance
-		sync.RWMutex
-	}
-
-	TradeReportBranch struct {
-		TradeReports []Trade
 		sync.RWMutex
 	}
 }

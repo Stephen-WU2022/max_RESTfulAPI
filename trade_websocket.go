@@ -12,6 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// trade stream is build for gratching all trades of market.
 type TradeStreamBranch struct {
 	cancel     *context.CancelFunc
 	ConnBranch struct {
