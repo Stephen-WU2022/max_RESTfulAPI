@@ -19,23 +19,6 @@ import (
 
 func (Mc *MaxClient) TradeReportStream(ctx context.Context) {
 	go Mc.TradeReportWebsocket(ctx)
-
-	/* // pint it
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-
-				time.Sleep(time.Minute * 2)
-				Mc.WsClient.connMutex.Lock()
-				err := Mc.WsClient.Conn.WriteMessage(websocket.PingMessage, []byte("test"))
-				fmt.Println("⭐️", err)
-				Mc.WsClient.connMutex.Unlock()
-			}
-		}
-	}() */
 }
 
 // trade report
