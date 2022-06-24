@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/sirupsen/logrus"
 )
 
 func (Mc *MaxClient) TradeReportStream(ctx context.Context) {
@@ -59,7 +60,19 @@ func (Mc *MaxClient) TradeReportWebsocket(ctx context.Context) {
 	Mc.WsClient.connMutex.Unlock()
 	Mc.wsOnErrTurn(false)
 
-	Mc.WsClient.Conn.SetPingHandler(nil)
+	// pint it
+	go func() {
+		for {
+			time.Sleep(time.Minute * 2)
+			Mc.WsClient.Conn.WriteMessage(websocket.PingMessage, []byte("ping"))
+			Mc.WsClient.onErrMutex.Lock()
+			onErr := Mc.WsClient.OnErr
+			Mc.WsClient.onErrMutex.Unlock()
+			if onErr {
+				break
+			}
+		}
+	}()
 
 	// mainloop
 mainloop:
@@ -75,9 +88,7 @@ mainloop:
 				break mainloop
 			}
 
-			Mc.WsClient.connMutex.Lock()
 			msgtype, msg, err := conn.ReadMessage()
-			Mc.WsClient.connMutex.Unlock()
 			if err != nil {
 				log.Println("read:", err, string(msg), msgtype)
 				Mc.wsOnErrTurn(true)
@@ -97,7 +108,7 @@ mainloop:
 		if Mc.WsClient.OnErr {
 			break
 		}
-		time.Sleep(time.Millisecond * 50)
+		time.Sleep(time.Millisecond)
 	} // end for
 
 	Mc.WsClient.Conn.Close()
@@ -112,6 +123,7 @@ mainloop:
 	Mc.WsClient.TmpBranch.Unlock()
 
 	time.Sleep(time.Millisecond * 200)
+
 	go Mc.TradeReportWebsocket(ctx)
 }
 
@@ -157,7 +169,7 @@ func (Mc *MaxClient) handleTradeReportMsg(msg []byte) error {
 	var err2 error
 	switch event {
 	case "authenticated":
-		log.Print("MAX trade report websocket connected")
+		logrus.Info("MAX trade report websocket connected")
 	case "trade_snapshot":
 		err2 = Mc.parseTradeReportSnapshotMsg(msgMap)
 	case "trade_update":
