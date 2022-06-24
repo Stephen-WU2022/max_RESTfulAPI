@@ -26,9 +26,11 @@ func (Mc *MaxClient) TradeReportStream(ctx context.Context) {
 			case <-ctx.Done():
 				return
 			default:
-				time.Sleep(time.Minute * 1)
+
+				time.Sleep(time.Minute * 2)
 				Mc.WsClient.connMutex.Lock()
-				Mc.WsClient.Conn.WriteMessage(websocket.PingMessage, []byte("ping"))
+				err := Mc.WsClient.Conn.WriteMessage(websocket.PingMessage, []byte("test"))
+				fmt.Println("⭐️", err)
 				Mc.WsClient.connMutex.Unlock()
 			}
 		}
