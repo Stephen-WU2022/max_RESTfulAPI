@@ -28,42 +28,49 @@ func (Mc *MaxClient) TradeReportWebsocket(ctx context.Context) {
 
 	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
-		log.Println(err)
+		log.Println("❌ trade report dial:", err)
 		Mc.wsOnErrTurn(true)
 	}
 
-	subMsg, err := TradeReportSubscribeMessage(Mc.apiKey, Mc.apiSecret)
-	if err != nil {
-		log.Println(errors.New("fail to construct subscribtion message"))
-		Mc.wsOnErrTurn(true)
-	}
-
-	err = conn.WriteMessage(websocket.TextMessage, subMsg)
-	if err != nil {
-		log.Println(errors.New("fail to subscribe websocket"))
-		Mc.wsOnErrTurn(true)
-	}
 	Mc.WsClient.connMutex.Lock()
 	Mc.WsClient.Conn = conn
 	Mc.WsClient.connMutex.Unlock()
 
+	subMsg, err := TradeReportSubscribeMessage(Mc.apiKey, Mc.apiSecret)
+	if err != nil {
+		log.Println(errors.New("❌ fail to construct subscribtion message"))
+		Mc.wsOnErrTurn(true)
+	}
+
+	if !Mc.isWsOnErr() {
+		Mc.WsClient.connMutex.Lock()
+		err = Mc.WsClient.Conn.WriteMessage(websocket.TextMessage, subMsg)
+		Mc.WsClient.connMutex.Unlock()
+		if err != nil {
+			log.Println(errors.New("❌ fail to subscribe websocket"))
+			Mc.wsOnErrTurn(true)
+		}
+	}
+
 	// pint it
 	go func() {
 		for {
-			time.Sleep(time.Minute * 2)
-			Mc.WsClient.Conn.WriteMessage(websocket.PingMessage, []byte("ping"))
-			Mc.WsClient.onErrMutex.Lock()
-			onErr := Mc.WsClient.OnErr
-			Mc.WsClient.onErrMutex.Unlock()
-			if onErr {
+			if Mc.isWsOnErr() {
 				break
 			}
+			time.Sleep(time.Minute * 2)
+			Mc.WsClient.Conn.WriteMessage(websocket.PingMessage, []byte("ping"))
 		}
 	}()
 
 	// mainloop
 mainloop:
 	for {
+		// if there is something wrong that the WS should be reconnected.
+		if Mc.isWsOnErr() {
+			break
+		}
+
 		select {
 		case <-ctx.Done():
 			Mc.wsOnErrTurn(false)
@@ -77,7 +84,7 @@ mainloop:
 
 			msgtype, msg, err := conn.ReadMessage()
 			if err != nil {
-				log.Println("read:", err, string(msg), msgtype)
+				log.Println("❌ trade report read:", err, string(msg), msgtype)
 				Mc.wsOnErrTurn(true)
 				time.Sleep(time.Millisecond * 500)
 				break mainloop
@@ -85,23 +92,18 @@ mainloop:
 
 			errh := Mc.handleTradeReportMsg(msg)
 			if errh != nil {
-				log.Println(errh)
+				log.Println("❌ trade report handle:", errh)
 				Mc.wsOnErrTurn(true)
 				break mainloop
 			}
 		} // end select
-
-		// if there is something wrong that the WS should be reconnected.
-		if Mc.WsClient.OnErr {
-			break
-		}
 		time.Sleep(time.Millisecond)
 	} // end for
 
 	Mc.WsClient.Conn.Close()
 
 	// if it is manual work.
-	if !Mc.WsClient.OnErr {
+	if !Mc.isWsOnErr() {
 		return
 	}
 
@@ -109,7 +111,7 @@ mainloop:
 	Mc.WsClient.TmpBranch.Trades = Mc.ReadTrades()
 	Mc.WsClient.TmpBranch.Unlock()
 
-	time.Sleep(time.Millisecond * 200)
+	time.Sleep(time.Millisecond * 500)
 
 	go Mc.TradeReportWebsocket(ctx)
 }
@@ -238,4 +240,11 @@ func (Mc *MaxClient) wsOnErrTurn(b bool) {
 	Mc.WsClient.onErrMutex.Lock()
 	defer Mc.WsClient.onErrMutex.Unlock()
 	Mc.WsClient.OnErr = b
+}
+
+func (Mc *MaxClient) isWsOnErr() (onErr bool) {
+	Mc.WsClient.onErrMutex.RLock()
+	defer Mc.WsClient.onErrMutex.RUnlock()
+	onErr = Mc.WsClient.OnErr
+	return
 }

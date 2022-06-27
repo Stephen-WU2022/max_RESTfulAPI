@@ -23,7 +23,7 @@ type OrderbookBranch struct {
 
 	onErrBranch struct {
 		onErr bool
-		mutex sync.RWMutex
+		sync.RWMutex
 	}
 	Market string
 
@@ -31,7 +31,7 @@ type OrderbookBranch struct {
 	asks                       mapbook.AskBook
 	lastUpdatedTimestampBranch struct {
 		timestamp int64
-		mux       sync.RWMutex
+		sync.RWMutex
 	}
 }
 
@@ -72,29 +72,38 @@ func SpotLocalOrderbook(symbol string, logger *logrus.Logger) *OrderbookBranch {
 
 func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
 	var url string = "wss://max-stream.maicoin.com/ws"
+	o.wsOnErrTurn(false)
 
 	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
-		log.Print(err)
+		log.Print("❌ local orderbook dial:", err)
 	}
-	//LogInfoToDailyLogFile("Connected:", url)
+
+	o.ConnBranch.Lock()
 	o.ConnBranch.conn = conn
-	o.onErrBranch.mutex.Lock()
-	o.onErrBranch.onErr = false
-	o.onErrBranch.mutex.Unlock()
+	o.ConnBranch.Unlock()
 
 	subMsg, err := maxSubscribeBookMessage(symbol)
 	if err != nil {
-		log.Print(errors.New("fail to construct subscribtion message"))
+		log.Print(errors.New("❌ fail to construct subscribtion message"))
 	}
 
-	err = conn.WriteMessage(websocket.TextMessage, subMsg)
-	if err != nil {
-		log.Print(errors.New("fail to subscribe websocket"))
+	if !o.isWsOnErr() {
+		o.ConnBranch.Lock()
+		err = o.ConnBranch.conn.WriteMessage(websocket.TextMessage, subMsg)
+		o.ConnBranch.Unlock()
+		if err != nil {
+			log.Print(errors.New("❌ fail to subscribe websocket"))
+		}
 	}
+
 	time.Sleep(time.Second)
 
 	for {
+		// if there is something wrong that the WS should be reconnected.
+		if o.isWsOnErr() {
+			break
+		}
 		select {
 		case <-ctx.Done():
 			o.ConnBranch.Lock()
@@ -102,10 +111,7 @@ func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
 			o.ConnBranch.Unlock()
 			return
 		default:
-			o.onErrBranch.mutex.Lock()
-			onErr := o.onErrBranch.onErr
-			o.onErrBranch.mutex.Unlock()
-			if onErr {
+			if o.isWsOnErr() {
 				break
 			}
 
@@ -113,29 +119,20 @@ func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
 			_, msg, err := o.ConnBranch.conn.ReadMessage()
 			o.ConnBranch.Unlock()
 			if err != nil {
-				log.Print("orderbook maintain read:", err)
-				o.onErrBranch.mutex.Lock()
-				o.onErrBranch.onErr = true
-				o.onErrBranch.mutex.Unlock()
+				log.Print("❌ orderbook maintain read:", err)
+				o.wsOnErrTurn(true)
 				time.Sleep(time.Second)
 				break
 			}
 
 			errh := o.handleMaxBookSocketMsg(msg)
 			if errh != nil {
-				log.Println("orderbook maintain handle:", errh)
-				o.onErrBranch.mutex.Lock()
-				o.onErrBranch.onErr = true
-				o.onErrBranch.mutex.Unlock()
+				log.Println("❌ orderbook maintain handle:", errh)
+				o.wsOnErrTurn(true)
 				time.Sleep(time.Second)
 			}
 
 		} // end select
-
-		// if there is something wrong that the WS should be reconnected.
-		if o.onErrBranch.onErr {
-			break
-		}
 		time.Sleep(time.Millisecond)
 	} // end for
 
@@ -146,6 +143,7 @@ func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
 	if !o.onErrBranch.onErr {
 		return
 	}
+	time.Sleep(500 * time.Millisecond)
 	go o.maintain(ctx, symbol)
 }
 
@@ -218,7 +216,7 @@ func (o *OrderbookBranch) parseOrderbookUpdateMsg(msgMap map[string]interface{})
 	}
 
 	wrongTime := false
-	o.lastUpdatedTimestampBranch.mux.Lock()
+	o.lastUpdatedTimestampBranch.Lock()
 	if time.Now().UnixMilli()-book.Timestamp > 5000 {
 		o.lastUpdatedTimestampBranch.timestamp = book.Timestamp
 		wrongTime = true
@@ -227,12 +225,10 @@ func (o *OrderbookBranch) parseOrderbookUpdateMsg(msgMap map[string]interface{})
 	} else {
 		o.lastUpdatedTimestampBranch.timestamp = book.Timestamp
 	}
-	o.lastUpdatedTimestampBranch.mux.Unlock()
+	o.lastUpdatedTimestampBranch.Unlock()
 
 	if wrongTime {
-		o.onErrBranch.mutex.Lock()
-		o.onErrBranch.onErr = true
-		o.onErrBranch.mutex.Unlock()
+		o.wsOnErrTurn(true)
 		return nil
 	}
 
@@ -263,20 +259,28 @@ func (o *OrderbookBranch) parseOrderbookSnapshotMsg(msgMap map[string]interface{
 	o.asks.Snapshot(book.Asks)
 	o.bids.Snapshot(book.Bids)
 
-	o.lastUpdatedTimestampBranch.mux.Lock()
+	o.lastUpdatedTimestampBranch.Lock()
+	defer o.lastUpdatedTimestampBranch.Unlock()
 	if time.Now().UnixMilli()-book.Timestamp > 5000 {
-		o.onErrBranch.mutex.Lock()
-		o.onErrBranch.onErr = true
+		o.wsOnErrTurn(true)
 		log.Println("❌ max book websocket data delay more than 5 sec")
-		o.onErrBranch.mutex.Unlock()
 	}
 	o.lastUpdatedTimestampBranch.timestamp = book.Timestamp
-
-	o.lastUpdatedTimestampBranch.mux.Unlock()
-
 	return nil
 }
 
+func (o *OrderbookBranch) wsOnErrTurn(b bool) {
+	o.onErrBranch.Lock()
+	defer o.onErrBranch.Unlock()
+	o.onErrBranch.onErr = b
+}
+
+func (o *OrderbookBranch) isWsOnErr() (onErr bool) {
+	o.onErrBranch.RLock()
+	o.onErrBranch.RUnlock()
+	onErr = o.onErrBranch.onErr
+	return
+}
 func (o *OrderbookBranch) GetBids() ([][]string, bool) {
 	return o.bids.GetAll()
 }
