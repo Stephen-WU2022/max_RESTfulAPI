@@ -24,24 +24,28 @@ func (Mc *MaxClient) TradeReportStream(ctx context.Context) {
 // trade report
 func (Mc *MaxClient) TradeReportWebsocket(ctx context.Context) {
 	var url string = "wss://max-stream.maicoin.com/ws"
+	Mc.wsOnErrTurn(false)
+
 	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		Mc.wsOnErrTurn(true)
 	}
 
 	subMsg, err := TradeReportSubscribeMessage(Mc.apiKey, Mc.apiSecret)
 	if err != nil {
-		log.Fatal(errors.New("fail to construct subscribtion message"))
+		log.Println(errors.New("fail to construct subscribtion message"))
+		Mc.wsOnErrTurn(true)
 	}
 
 	err = conn.WriteMessage(websocket.TextMessage, subMsg)
 	if err != nil {
-		log.Fatal(errors.New("fail to subscribe websocket"))
+		log.Println(errors.New("fail to subscribe websocket"))
+		Mc.wsOnErrTurn(true)
 	}
 	Mc.WsClient.connMutex.Lock()
 	Mc.WsClient.Conn = conn
 	Mc.WsClient.connMutex.Unlock()
-	Mc.wsOnErrTurn(false)
 
 	// pint it
 	go func() {
