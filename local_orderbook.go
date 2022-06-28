@@ -144,7 +144,7 @@ func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
 		return
 	}
 	time.Sleep(500 * time.Millisecond)
-	go o.maintain(ctx, symbol)
+	o.maintain(ctx, symbol)
 }
 
 // default for the depth 10 (max).

@@ -113,7 +113,7 @@ mainloop:
 
 	time.Sleep(time.Millisecond * 500)
 
-	go Mc.TradeReportWebsocket(ctx)
+	Mc.TradeReportWebsocket(ctx)
 }
 
 // provide private subscribtion message.
