@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Bo-Hao/mapbook"
+	mapbook "github.com/Bo-Hao/syncmapbook"
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
 )
