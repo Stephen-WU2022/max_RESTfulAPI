@@ -77,6 +77,9 @@ func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
 	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
 		log.Print("❌ local orderbook dial:", err)
+		defer o.maintain(ctx, symbol)
+		time.Sleep(1 * time.Second)
+		return
 	}
 
 	o.ConnBranch.Lock()

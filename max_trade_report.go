@@ -30,6 +30,9 @@ func (Mc *MaxClient) TradeReportWebsocket(ctx context.Context) {
 	if err != nil {
 		log.Println("❌ trade report dial:", err)
 		Mc.wsOnErrTurn(true)
+		defer Mc.TradeReportWebsocket(ctx)
+		time.Sleep(1 * time.Second)
+		return
 	}
 
 	Mc.WsClient.connMutex.Lock()
