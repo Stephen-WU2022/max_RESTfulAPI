@@ -209,9 +209,9 @@ func (Mc *MaxClient) GetBalances() (balances [][]string, ok bool) {
 	Accounts := member.Accounts
 	for i := 0; i < len(Accounts); i++ {
 		currency := Accounts[i].Currency
-		available, err := strconv.ParseFloat(Accounts[i].Balance, 64)
+		total, err := strconv.ParseFloat(Accounts[i].Balance, 64)
 		if err != nil {
-			available = 0
+			total = 0
 		}
 		locked, err := strconv.ParseFloat(Accounts[i].Locked, 64)
 
@@ -220,7 +220,7 @@ func (Mc *MaxClient) GetBalances() (balances [][]string, ok bool) {
 		}
 
 		// handle the case here.
-		balances = append(balances, []string{strings.ToUpper(currency), fmt.Sprint(available), fmt.Sprint(available + locked)})
+		balances = append(balances, []string{strings.ToUpper(currency), fmt.Sprint(total - locked), fmt.Sprint(total)})
 	}
 	return balances, true
 }
