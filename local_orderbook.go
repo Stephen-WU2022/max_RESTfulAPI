@@ -101,11 +101,11 @@ mainloop:
 			o.Close()
 			return
 		default:
-			o.lastUpdatedTimestampBranch.Lock()
+			/* o.lastUpdatedTimestampBranch.Lock()
 			if time.Now().UnixMilli()-o.lastUpdatedTimestampBranch.timestamp > 10000 {
 				o.wsOnErrTurn(true)
 			}
-			o.lastUpdatedTimestampBranch.Unlock()
+			o.lastUpdatedTimestampBranch.Unlock() */
 
 			if o.isWsOnErr() {
 				break mainloop
