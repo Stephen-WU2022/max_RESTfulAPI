@@ -53,15 +53,13 @@ func SpotLocalOrderbook(ctx context.Context, symbol string, logger *logrus.Logge
 
 	go func() {
 		for {
-			time.Sleep(60 * time.Second)
 			select {
 			case <-ctx.Done():
 				return
 			default:
+				time.Sleep(60 * time.Second)
 				message := []byte("ping")
-				o.connBranch.Lock()
-				o.connBranch.conn.WriteMessage(websocket.PingMessage, message)
-				o.connBranch.Unlock()
+				o.conn().WriteMessage(websocket.PingMessage, message)
 			}
 		}
 	}()
@@ -69,8 +67,8 @@ func SpotLocalOrderbook(ctx context.Context, symbol string, logger *logrus.Logge
 }
 
 func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
-	var url string = "wss://max-stream.maicoin.com/ws"
 	o.wsOnErrTurn(false)
+	var url string = "wss://max-stream.maicoin.com/ws"
 
 	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
@@ -80,48 +78,45 @@ func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
 		return
 	}
 
-	o.connBranch.Lock()
-	o.connBranch.conn = conn
-	o.connBranch.Unlock()
+	o.setConn(conn)
 
 	subMsg, err := maxSubscribeBookMessage(symbol)
 	if err != nil {
 		log.Print(errors.New("❌ fail to construct subscribtion message"))
+		o.wsOnErrTurn(true)
 	}
 
-	if !o.isWsOnErr() {
-		o.connBranch.Lock()
-		err = o.connBranch.conn.WriteMessage(websocket.TextMessage, subMsg)
-		o.connBranch.Unlock()
-		if err != nil {
-			log.Print(errors.New("❌ fail to subscribe websocket"))
-		}
+	o.conn().WriteMessage(websocket.TextMessage, subMsg)
+	if err != nil {
+		o.wsOnErrTurn(true)
+		log.Print(errors.New("❌ fail to subscribe websocket"))
 	}
 
 	time.Sleep(time.Second)
 
+mainloop:
 	for {
-		// if there is something wrong that the WS should be reconnected.
-		if o.isWsOnErr() {
-			break
-		}
 		select {
 		case <-ctx.Done():
 			o.Close()
 			return
 		default:
+			o.lastUpdatedTimestampBranch.Lock()
+			if time.Now().UnixMilli()-o.lastUpdatedTimestampBranch.timestamp > 10000 {
+				o.wsOnErrTurn(true)
+			}
+			o.lastUpdatedTimestampBranch.Unlock()
+
 			if o.isWsOnErr() {
-				break
+				break mainloop
 			}
 
-			o.connBranch.Lock()
-			_, msg, err := o.connBranch.conn.ReadMessage()
-			o.connBranch.Unlock()
+			_, msg, err := o.conn().ReadMessage()
 			if err != nil {
 				log.Print("❌ orderbook maintain read:", err)
 				o.wsOnErrTurn(true)
 				time.Sleep(time.Second)
-				break
+				break mainloop
 			}
 
 			errh := o.handleMaxBookSocketMsg(msg)
@@ -129,8 +124,8 @@ func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
 				log.Println("❌ orderbook maintain handle:", errh)
 				o.wsOnErrTurn(true)
 				time.Sleep(time.Second)
+				break mainloop
 			}
-
 		} // end select
 		time.Sleep(time.Millisecond)
 	} // end for
@@ -139,7 +134,7 @@ func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
 	o.connBranch.conn.Close()
 	o.connBranch.Unlock()
 
-	if !o.onErrBranch.onErr {
+	if !o.isWsOnErr() {
 		return
 	}
 	time.Sleep(500 * time.Millisecond)
@@ -193,7 +188,7 @@ func (o *OrderbookBranch) handleMaxBookSocketMsg(msg []byte) error {
 
 	if err2 != nil {
 		fmt.Println(err2, "err2")
-		return errors.New("fail to parse message")
+		return err2
 	}
 	return nil
 }
@@ -260,10 +255,6 @@ func (o *OrderbookBranch) parseOrderbookSnapshotMsg(msgMap map[string]interface{
 
 	o.lastUpdatedTimestampBranch.Lock()
 	defer o.lastUpdatedTimestampBranch.Unlock()
-	if time.Now().UnixMilli()-book.Timestamp > 5000 {
-		o.wsOnErrTurn(true)
-		log.Println("❌ max book websocket data delay more than 5 sec")
-	}
 	o.lastUpdatedTimestampBranch.timestamp = book.Timestamp
 	return nil
 }
@@ -279,6 +270,18 @@ func (o *OrderbookBranch) isWsOnErr() (onErr bool) {
 	defer o.onErrBranch.RUnlock()
 	onErr = o.onErrBranch.onErr
 	return
+}
+
+func (o *OrderbookBranch) setConn(conn *websocket.Conn) {
+	o.connBranch.Lock()
+	defer o.connBranch.Unlock()
+	o.connBranch.conn = conn
+}
+
+func (o *OrderbookBranch) conn() *websocket.Conn {
+	o.connBranch.Lock()
+	defer o.connBranch.Unlock()
+	return o.connBranch.conn
 }
 func (o *OrderbookBranch) GetBids() ([][]string, bool) {
 	return o.bids.GetAll()
