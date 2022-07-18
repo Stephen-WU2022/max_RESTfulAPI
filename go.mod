@@ -3,7 +3,7 @@ module github.com/Bo-Hao/max_RESTfulAPI
 go 1.17
 
 require (
-	github.com/Bo-Hao/syncmapbook v0.0.0-20220629070621-abfdf23e48c4
+	github.com/Bo-Hao/syncmapbook v0.0.0-20220718053906-52e90f90286d
 	github.com/gorilla/websocket v1.5.0
 	github.com/json-iterator/go v1.1.12
 	github.com/shopspring/decimal v1.3.1

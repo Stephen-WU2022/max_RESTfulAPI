@@ -15,8 +15,7 @@ import (
 )
 
 type OrderbookBranch struct {
-	cancel     *context.CancelFunc
-	ConnBranch struct {
+	connBranch struct {
 		conn *websocket.Conn
 		sync.Mutex
 	}
@@ -44,13 +43,12 @@ type bookstruct struct {
 	Timestamp int64      `json:"T,omitempty"`
 }
 
-func SpotLocalOrderbook(symbol string, logger *logrus.Logger) *OrderbookBranch {
+func SpotLocalOrderbook(ctx context.Context, symbol string, logger *logrus.Logger) *OrderbookBranch {
 	var o OrderbookBranch
-	ctx, cancel := context.WithCancel(context.Background())
-	o.cancel = &cancel
 	o.Market = strings.ToLower(symbol)
-	o.asks = *mapbook.NewAskBook(false)
-	o.bids = *mapbook.NewBidBook(false)
+	o.asks = *mapbook.NewAskBook()
+	o.bids = *mapbook.NewBidBook()
+
 	go o.maintain(ctx, symbol)
 
 	go func() {
@@ -61,9 +59,9 @@ func SpotLocalOrderbook(symbol string, logger *logrus.Logger) *OrderbookBranch {
 				return
 			default:
 				message := []byte("ping")
-				o.ConnBranch.Lock()
-				o.ConnBranch.conn.WriteMessage(websocket.PingMessage, message)
-				o.ConnBranch.Unlock()
+				o.connBranch.Lock()
+				o.connBranch.conn.WriteMessage(websocket.PingMessage, message)
+				o.connBranch.Unlock()
 			}
 		}
 	}()
@@ -82,9 +80,9 @@ func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
 		return
 	}
 
-	o.ConnBranch.Lock()
-	o.ConnBranch.conn = conn
-	o.ConnBranch.Unlock()
+	o.connBranch.Lock()
+	o.connBranch.conn = conn
+	o.connBranch.Unlock()
 
 	subMsg, err := maxSubscribeBookMessage(symbol)
 	if err != nil {
@@ -92,9 +90,9 @@ func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
 	}
 
 	if !o.isWsOnErr() {
-		o.ConnBranch.Lock()
-		err = o.ConnBranch.conn.WriteMessage(websocket.TextMessage, subMsg)
-		o.ConnBranch.Unlock()
+		o.connBranch.Lock()
+		err = o.connBranch.conn.WriteMessage(websocket.TextMessage, subMsg)
+		o.connBranch.Unlock()
 		if err != nil {
 			log.Print(errors.New("❌ fail to subscribe websocket"))
 		}
@@ -109,18 +107,16 @@ func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
 		}
 		select {
 		case <-ctx.Done():
-			o.ConnBranch.Lock()
-			o.ConnBranch.conn.Close()
-			o.ConnBranch.Unlock()
+			o.Close()
 			return
 		default:
 			if o.isWsOnErr() {
 				break
 			}
 
-			o.ConnBranch.Lock()
-			_, msg, err := o.ConnBranch.conn.ReadMessage()
-			o.ConnBranch.Unlock()
+			o.connBranch.Lock()
+			_, msg, err := o.connBranch.conn.ReadMessage()
+			o.connBranch.Unlock()
 			if err != nil {
 				log.Print("❌ orderbook maintain read:", err)
 				o.wsOnErrTurn(true)
@@ -139,9 +135,9 @@ func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
 		time.Sleep(time.Millisecond)
 	} // end for
 
-	o.ConnBranch.Lock()
-	o.ConnBranch.conn.Close()
-	o.ConnBranch.Unlock()
+	o.connBranch.Lock()
+	o.connBranch.conn.Close()
+	o.connBranch.Unlock()
 
 	if !o.onErrBranch.onErr {
 		return
@@ -280,7 +276,7 @@ func (o *OrderbookBranch) wsOnErrTurn(b bool) {
 
 func (o *OrderbookBranch) isWsOnErr() (onErr bool) {
 	o.onErrBranch.RLock()
-	o.onErrBranch.RUnlock()
+	defer o.onErrBranch.RUnlock()
 	onErr = o.onErrBranch.onErr
 	return
 }
@@ -293,8 +289,7 @@ func (o *OrderbookBranch) GetAsks() ([][]string, bool) {
 }
 
 func (o *OrderbookBranch) Close() {
-	o.ConnBranch.Lock()
-	o.ConnBranch.conn.Close()
-	o.ConnBranch.Unlock()
-	(*o.cancel)()
+	o.connBranch.Lock()
+	o.connBranch.conn.Close()
+	o.connBranch.Unlock()
 }
