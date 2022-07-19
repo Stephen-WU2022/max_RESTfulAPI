@@ -23,10 +23,13 @@ func (Mc *MaxClient) TradeReportStream(ctx context.Context) {
 
 // trade report
 func (Mc *MaxClient) TradeReportWebsocket(ctx context.Context) {
+	duration := time.Second * 30
 	var url string = "wss://max-stream.maicoin.com/ws"
 	Mc.wsOnErrTurn(false)
 
-	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
+	// wait 5 second, if the hand shake fail, will terminate the dail
+	dailCtx, _ := context.WithDeadline(ctx, time.Now().Add(time.Second*5))
+	conn, _, err := websocket.DefaultDialer.DialContext(dailCtx, url, nil)
 	if err != nil {
 		log.Println("❌ trade report dial:", err)
 		Mc.wsOnErrTurn(true)
@@ -35,9 +38,7 @@ func (Mc *MaxClient) TradeReportWebsocket(ctx context.Context) {
 		return
 	}
 
-	Mc.WsClient.connMutex.Lock()
-	Mc.WsClient.Conn = conn
-	Mc.WsClient.connMutex.Unlock()
+	Mc.setConn(conn)
 
 	subMsg, err := TradeReportSubscribeMessage(Mc.apiKey, Mc.apiSecret)
 	if err != nil {
@@ -46,9 +47,7 @@ func (Mc *MaxClient) TradeReportWebsocket(ctx context.Context) {
 	}
 
 	if !Mc.isWsOnErr() {
-		Mc.WsClient.connMutex.Lock()
-		err = Mc.WsClient.Conn.WriteMessage(websocket.TextMessage, subMsg)
-		Mc.WsClient.connMutex.Unlock()
+		err = Mc.conn().WriteMessage(websocket.TextMessage, subMsg)
 		if err != nil {
 			log.Println(errors.New("❌ fail to subscribe websocket"))
 			Mc.wsOnErrTurn(true)
@@ -62,7 +61,7 @@ func (Mc *MaxClient) TradeReportWebsocket(ctx context.Context) {
 				break
 			}
 			time.Sleep(time.Minute * 2)
-			Mc.WsClient.Conn.WriteMessage(websocket.PingMessage, []byte("ping"))
+			Mc.conn().WriteMessage(websocket.PingMessage, []byte("ping"))
 		}
 	}()
 
@@ -85,13 +84,14 @@ mainloop:
 				break mainloop
 			}
 
-			msgtype, msg, err := conn.ReadMessage()
+			msgtype, msg, err := Mc.conn().ReadMessage()
 			if err != nil {
 				log.Println("❌ trade report read:", err, string(msg), msgtype)
 				Mc.wsOnErrTurn(true)
 				time.Sleep(time.Millisecond * 500)
 				break mainloop
 			}
+			Mc.conn().SetReadDeadline(time.Now().Add(time.Second * duration))
 
 			errh := Mc.handleTradeReportMsg(msg)
 			if errh != nil {
@@ -250,4 +250,16 @@ func (Mc *MaxClient) isWsOnErr() (onErr bool) {
 	defer Mc.WsClient.onErrMutex.RUnlock()
 	onErr = Mc.WsClient.OnErr
 	return
+}
+
+func (Mc *MaxClient) setConn(conn *websocket.Conn) {
+	Mc.WsClient.connMutex.Lock()
+	defer Mc.WsClient.connMutex.Unlock()
+	Mc.WsClient.Conn = conn
+}
+
+func (Mc *MaxClient) conn() *websocket.Conn {
+	Mc.WsClient.connMutex.Lock()
+	defer Mc.WsClient.connMutex.Unlock()
+	return Mc.WsClient.Conn
 }

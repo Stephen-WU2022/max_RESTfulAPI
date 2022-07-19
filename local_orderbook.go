@@ -68,9 +68,12 @@ func SpotLocalOrderbook(ctx context.Context, symbol string, logger *logrus.Logge
 
 func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
 	o.wsOnErrTurn(false)
+	duration := time.Second * 30
 	var url string = "wss://max-stream.maicoin.com/ws"
 
-	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
+	// wait 5 second, if the hand shake fail, will terminate the dail
+	dailCtx, _ := context.WithDeadline(ctx, time.Now().Add(time.Second*5))
+	conn, _, err := websocket.DefaultDialer.DialContext(dailCtx, url, nil)
 	if err != nil {
 		log.Print("❌ local orderbook dial:", err)
 		defer o.maintain(ctx, symbol)
@@ -101,12 +104,6 @@ mainloop:
 			o.Close()
 			return
 		default:
-			/* o.lastUpdatedTimestampBranch.Lock()
-			if time.Now().UnixMilli()-o.lastUpdatedTimestampBranch.timestamp > 10000 {
-				o.wsOnErrTurn(true)
-			}
-			o.lastUpdatedTimestampBranch.Unlock() */
-
 			if o.isWsOnErr() {
 				break mainloop
 			}
@@ -118,6 +115,7 @@ mainloop:
 				time.Sleep(time.Second)
 				break mainloop
 			}
+			o.conn().SetReadDeadline(time.Now().Add(time.Second * duration))
 
 			errh := o.handleMaxBookSocketMsg(msg)
 			if errh != nil {
