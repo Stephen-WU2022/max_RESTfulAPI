@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/sirupsen/logrus"
 )
 
 func (Mc *MaxClient) TradeReportStream(ctx context.Context) {
@@ -161,7 +160,7 @@ func (Mc *MaxClient) handleTradeReportMsg(msg []byte) error {
 	var err2 error
 	switch event {
 	case "authenticated":
-		logrus.Info("MAX trade report websocket connected")
+		log.Println("✅ MAX trade report websocket connected")
 	case "trade_snapshot":
 		err2 = Mc.parseTradeReportSnapshotMsg(msgMap)
 	case "trade_update":
