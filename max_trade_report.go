@@ -256,7 +256,7 @@ func (Mc *MaxClient) setConn(conn *websocket.Conn) {
 func (Mc *MaxClient) wsWriteMsg(msgType int, data []byte) {
 	Mc.WsClient.connMutex.Lock()
 	defer Mc.WsClient.connMutex.Unlock()
-	Mc.WsClient.Conn.WriteMessage(websocket.PingMessage, []byte("ping"))
+	Mc.WsClient.Conn.WriteMessage(msgType, data)
 }
 
 func (Mc *MaxClient) wsReadMsg() (msgtype int, msg []byte, err error) {

@@ -291,13 +291,14 @@ func (o *OrderbookBranch) Close() {
 func (o *OrderbookBranch) wsWriteMsg(msgType int, data []byte) {
 	o.connBranch.Lock()
 	defer o.connBranch.Unlock()
-	o.connBranch.conn.WriteMessage(websocket.PingMessage, []byte("ping"))
+	o.connBranch.conn.WriteMessage(msgType, data)
 }
 
 func (o *OrderbookBranch) wsReadMsg() (msgtype int, msg []byte, err error) {
 	o.connBranch.Lock()
 	defer o.connBranch.Unlock()
 	msgtype, msg, err = o.connBranch.conn.ReadMessage()
+
 	return
 }
 
