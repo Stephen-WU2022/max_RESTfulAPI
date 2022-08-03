@@ -22,7 +22,7 @@ func (Mc *MaxClient) TradeReportStream(ctx context.Context) {
 
 // trade report
 func (Mc *MaxClient) TradeReportWebsocket(ctx context.Context) {
-	duration := time.Second * 30
+	duration := time.Minute * 5
 	var url string = "wss://max-stream.maicoin.com/ws"
 	Mc.wsOnErrTurn(false)
 
@@ -81,7 +81,7 @@ mainloop:
 
 			msgtype, msg, err := Mc.WsClient.Conn.ReadMessage()
 			if err != nil {
-				log.Println("❌ trade report read:", err, string(msg), msgtype)
+				//log.Println("❌ trade report read:", err, string(msg), msgtype)
 				Mc.wsOnErrTurn(true)
 				time.Sleep(time.Millisecond * 500)
 				break mainloop
