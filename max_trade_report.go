@@ -22,7 +22,7 @@ func (Mc *MaxClient) TradeReportStream(ctx context.Context) {
 
 // trade report
 func (Mc *MaxClient) TradeReportWebsocket(ctx context.Context) {
-	duration := time.Second * 30
+	//duration := time.Second * 30
 	var url string = "wss://max-stream.maicoin.com/ws"
 	Mc.wsOnErrTurn(false)
 
