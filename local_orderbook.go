@@ -120,7 +120,7 @@ mainloop:
 
 			errh := o.handleMaxBookSocketMsg(msg)
 			if errh != nil {
-				log.Println("❌ orderbook maintain handle:", errh)
+				//log.Println("❌ orderbook maintain handle:", errh)
 				o.wsOnErrTurn(true)
 				time.Sleep(time.Second)
 				break mainloop

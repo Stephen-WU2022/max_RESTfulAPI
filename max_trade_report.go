@@ -79,7 +79,7 @@ mainloop:
 				break mainloop
 			}
 
-			msgtype, msg, err := Mc.WsClient.Conn.ReadMessage()
+			_, msg, err := Mc.WsClient.Conn.ReadMessage()
 			if err != nil {
 				//log.Println("❌ trade report read:", err, string(msg), msgtype)
 				Mc.wsOnErrTurn(true)
