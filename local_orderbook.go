@@ -108,14 +108,15 @@ mainloop:
 				break mainloop
 			}
 
-			_, msg, err := o.wsReadMsg()
+			_, msg, err := o.connBranch.conn.ReadMessage()
+
 			if err != nil {
 				log.Print("❌ orderbook maintain read:", err)
 				o.wsOnErrTurn(true)
 				time.Sleep(time.Second)
 				break mainloop
 			}
-			o.wsSetReadDeadline(duration)
+			o.connBranch.conn.SetReadDeadline(time.Now().Add(duration))
 
 			errh := o.handleMaxBookSocketMsg(msg)
 			if errh != nil {
@@ -292,18 +293,4 @@ func (o *OrderbookBranch) wsWriteMsg(msgType int, data []byte) {
 	o.connBranch.Lock()
 	defer o.connBranch.Unlock()
 	o.connBranch.conn.WriteMessage(msgType, data)
-}
-
-func (o *OrderbookBranch) wsReadMsg() (msgtype int, msg []byte, err error) {
-	o.connBranch.Lock()
-	defer o.connBranch.Unlock()
-	msgtype, msg, err = o.connBranch.conn.ReadMessage()
-
-	return
-}
-
-func (o *OrderbookBranch) wsSetReadDeadline(duration time.Duration) {
-	o.connBranch.Lock()
-	defer o.connBranch.Unlock()
-	o.connBranch.conn.SetReadDeadline(time.Now().Add(duration))
 }

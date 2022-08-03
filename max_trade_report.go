@@ -22,7 +22,7 @@ func (Mc *MaxClient) TradeReportStream(ctx context.Context) {
 
 // trade report
 func (Mc *MaxClient) TradeReportWebsocket(ctx context.Context) {
-	//duration := time.Second * 30
+	duration := time.Second * 30
 	var url string = "wss://max-stream.maicoin.com/ws"
 	Mc.wsOnErrTurn(false)
 
@@ -79,14 +79,14 @@ mainloop:
 				break mainloop
 			}
 
-			msgtype, msg, err := Mc.wsReadMsg()
+			msgtype, msg, err := Mc.WsClient.Conn.ReadMessage()
 			if err != nil {
 				log.Println("❌ trade report read:", err, string(msg), msgtype)
 				Mc.wsOnErrTurn(true)
 				time.Sleep(time.Millisecond * 500)
 				break mainloop
 			}
-			//Mc.WsClient.Conn.SetReadDeadline(time.Now().Add(time.Second * duration))
+			Mc.WsClient.Conn.SetReadDeadline(time.Now().Add(time.Second * duration))
 
 			errh := Mc.handleTradeReportMsg(msg)
 			if errh != nil {
@@ -257,11 +257,4 @@ func (Mc *MaxClient) wsWriteMsg(msgType int, data []byte) {
 	Mc.WsClient.connMutex.Lock()
 	defer Mc.WsClient.connMutex.Unlock()
 	Mc.WsClient.Conn.WriteMessage(msgType, data)
-}
-
-func (Mc *MaxClient) wsReadMsg() (msgtype int, msg []byte, err error) {
-	Mc.WsClient.connMutex.Lock()
-	defer Mc.WsClient.connMutex.Unlock()
-	msgtype, msg, err = Mc.WsClient.Conn.ReadMessage()
-	return
 }
