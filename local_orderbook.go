@@ -128,9 +128,7 @@ mainloop:
 		time.Sleep(time.Millisecond)
 	} // end for
 
-	o.connBranch.Lock()
-	o.connBranch.conn.Close()
-	o.connBranch.Unlock()
+	o.Close()
 
 	if !o.isWsOnErr() {
 		return
@@ -286,8 +284,8 @@ func (o *OrderbookBranch) GetAsks() ([][]string, bool) {
 
 func (o *OrderbookBranch) Close() {
 	o.connBranch.Lock()
+	defer o.connBranch.Unlock()
 	o.connBranch.conn.Close()
-	o.connBranch.Unlock()
 }
 
 func (o *OrderbookBranch) wsWriteMsg(msgType int, data []byte) {
@@ -306,5 +304,5 @@ func (o *OrderbookBranch) wsReadMsg() (msgtype int, msg []byte, err error) {
 func (o *OrderbookBranch) wsSetReadDeadline(duration time.Duration) {
 	o.connBranch.Lock()
 	defer o.connBranch.Unlock()
-	o.connBranch.conn.SetReadDeadline(time.Now().Add(time.Second * duration))
+	o.connBranch.conn.SetReadDeadline(time.Now().Add(duration))
 }
