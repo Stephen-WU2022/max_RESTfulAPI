@@ -86,7 +86,7 @@ mainloop:
 				time.Sleep(time.Millisecond * 500)
 				break mainloop
 			}
-			Mc.WsClient.Conn.SetReadDeadline(time.Now().Add(time.Second * duration))
+			Mc.WsClient.Conn.SetReadDeadline(time.Now().Add(duration))
 
 			errh := Mc.handleTradeReportMsg(msg)
 			if errh != nil {
