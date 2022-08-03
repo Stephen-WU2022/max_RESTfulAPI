@@ -59,7 +59,7 @@ func SpotLocalOrderbook(ctx context.Context, symbol string, logger *logrus.Logge
 			default:
 				time.Sleep(60 * time.Second)
 				message := []byte("ping")
-				o.conn().WriteMessage(websocket.PingMessage, message)
+				o.wsWriteMsg(websocket.PingMessage, message)
 			}
 		}
 	}()
@@ -89,7 +89,7 @@ func (o *OrderbookBranch) maintain(ctx context.Context, symbol string) {
 		o.wsOnErrTurn(true)
 	}
 
-	o.conn().WriteMessage(websocket.TextMessage, subMsg)
+	o.wsWriteMsg(websocket.TextMessage, subMsg)
 	if err != nil {
 		o.wsOnErrTurn(true)
 		log.Print(errors.New("❌ fail to subscribe websocket"))
@@ -108,14 +108,14 @@ mainloop:
 				break mainloop
 			}
 
-			_, msg, err := o.conn().ReadMessage()
+			_, msg, err := o.wsReadMsg()
 			if err != nil {
 				log.Print("❌ orderbook maintain read:", err)
 				o.wsOnErrTurn(true)
 				time.Sleep(time.Second)
 				break mainloop
 			}
-			o.conn().SetReadDeadline(time.Now().Add(time.Second * duration))
+			o.wsSetReadDeadline(duration)
 
 			errh := o.handleMaxBookSocketMsg(msg)
 			if errh != nil {
@@ -276,11 +276,6 @@ func (o *OrderbookBranch) setConn(conn *websocket.Conn) {
 	o.connBranch.conn = conn
 }
 
-func (o *OrderbookBranch) conn() *websocket.Conn {
-	o.connBranch.Lock()
-	defer o.connBranch.Unlock()
-	return o.connBranch.conn
-}
 func (o *OrderbookBranch) GetBids() ([][]string, bool) {
 	return o.bids.GetAll()
 }
@@ -293,4 +288,23 @@ func (o *OrderbookBranch) Close() {
 	o.connBranch.Lock()
 	o.connBranch.conn.Close()
 	o.connBranch.Unlock()
+}
+
+func (o *OrderbookBranch) wsWriteMsg(msgType int, data []byte) {
+	o.connBranch.Lock()
+	defer o.connBranch.Unlock()
+	o.connBranch.conn.WriteMessage(websocket.PingMessage, []byte("ping"))
+}
+
+func (o *OrderbookBranch) wsReadMsg() (msgtype int, msg []byte, err error) {
+	o.connBranch.Lock()
+	defer o.connBranch.Unlock()
+	msgtype, msg, err = o.connBranch.conn.ReadMessage()
+	return
+}
+
+func (o *OrderbookBranch) wsSetReadDeadline(duration time.Duration) {
+	o.connBranch.Lock()
+	defer o.connBranch.Unlock()
+	o.connBranch.conn.SetReadDeadline(time.Now().Add(time.Second * duration))
 }

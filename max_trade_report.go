@@ -46,11 +46,7 @@ func (Mc *MaxClient) TradeReportWebsocket(ctx context.Context) {
 	}
 
 	if !Mc.isWsOnErr() {
-		err = Mc.conn().WriteMessage(websocket.TextMessage, subMsg)
-		if err != nil {
-			log.Println(errors.New("❌ fail to subscribe websocket"))
-			Mc.wsOnErrTurn(true)
-		}
+		Mc.wsWriteMsg(websocket.TextMessage, subMsg)
 	}
 
 	// pint it
@@ -60,7 +56,7 @@ func (Mc *MaxClient) TradeReportWebsocket(ctx context.Context) {
 				break
 			}
 			time.Sleep(time.Minute * 2)
-			Mc.conn().WriteMessage(websocket.PingMessage, []byte("ping"))
+			Mc.wsWriteMsg(websocket.PingMessage, []byte("ping"))
 		}
 	}()
 
@@ -83,14 +79,14 @@ mainloop:
 				break mainloop
 			}
 
-			msgtype, msg, err := Mc.conn().ReadMessage()
+			msgtype, msg, err := Mc.wsReadMsg()
 			if err != nil {
 				log.Println("❌ trade report read:", err, string(msg), msgtype)
 				Mc.wsOnErrTurn(true)
 				time.Sleep(time.Millisecond * 500)
 				break mainloop
 			}
-			Mc.conn().SetReadDeadline(time.Now().Add(time.Second * duration))
+			Mc.WsClient.Conn.SetReadDeadline(time.Now().Add(time.Second * duration))
 
 			errh := Mc.handleTradeReportMsg(msg)
 			if errh != nil {
@@ -257,8 +253,15 @@ func (Mc *MaxClient) setConn(conn *websocket.Conn) {
 	Mc.WsClient.Conn = conn
 }
 
-func (Mc *MaxClient) conn() *websocket.Conn {
+func (Mc *MaxClient) wsWriteMsg(msgType int, data []byte) {
 	Mc.WsClient.connMutex.Lock()
 	defer Mc.WsClient.connMutex.Unlock()
-	return Mc.WsClient.Conn
+	Mc.WsClient.Conn.WriteMessage(websocket.PingMessage, []byte("ping"))
+}
+
+func (Mc *MaxClient) wsReadMsg() (msgtype int, msg []byte, err error) {
+	Mc.WsClient.connMutex.Lock()
+	defer Mc.WsClient.connMutex.Unlock()
+	msgtype, msg, err = Mc.WsClient.Conn.ReadMessage()
+	return
 }
