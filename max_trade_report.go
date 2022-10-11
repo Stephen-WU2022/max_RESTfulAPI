@@ -56,7 +56,9 @@ func (Mc *MaxClient) TradeReportWebsocket(ctx context.Context) {
 				break
 			}
 			time.Sleep(time.Minute * 2)
-			Mc.wsWriteMsg(websocket.PingMessage, []byte("ping"))
+			if err := Mc.wsWriteMsg(websocket.PingMessage, []byte("ping")); err == nil {
+				Mc.WsClient.Conn.SetReadDeadline(time.Now().Add(duration))
+			}
 		}
 	}()
 
@@ -253,8 +255,9 @@ func (Mc *MaxClient) setConn(conn *websocket.Conn) {
 	Mc.WsClient.Conn = conn
 }
 
-func (Mc *MaxClient) wsWriteMsg(msgType int, data []byte) {
+func (Mc *MaxClient) wsWriteMsg(msgType int, data []byte) error {
 	Mc.WsClient.connMutex.Lock()
 	defer Mc.WsClient.connMutex.Unlock()
-	Mc.WsClient.Conn.WriteMessage(msgType, data)
+	err := Mc.WsClient.Conn.WriteMessage(msgType, data)
+	return err
 }
