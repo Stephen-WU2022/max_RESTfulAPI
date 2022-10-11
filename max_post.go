@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/shopspring/decimal"
 )
 
 func (Mc *MaxClient) GetAccount() (Member, error) {
@@ -209,18 +211,17 @@ func (Mc *MaxClient) GetBalances() (balances [][]string, ok bool) {
 	Accounts := member.Accounts
 	for i := 0; i < len(Accounts); i++ {
 		currency := Accounts[i].Currency
-		total, err := strconv.ParseFloat(Accounts[i].Balance, 64)
+		available, err := decimal.NewFromString(Accounts[i].Balance)
 		if err != nil {
-			total = 0
+			available = decimal.Zero
 		}
-		locked, err := strconv.ParseFloat(Accounts[i].Locked, 64)
-
+		locked, err := decimal.NewFromString(Accounts[i].Locked)
 		if err != nil {
-			locked = 0
+			locked = decimal.Zero
 		}
 
 		// handle the case here.
-		balances = append(balances, []string{strings.ToUpper(currency), fmt.Sprint(total - locked), fmt.Sprint(total)})
+		balances = append(balances, []string{strings.ToUpper(currency), available.String(), (available.Add(locked)).String()})
 	}
 	return balances, true
 }
