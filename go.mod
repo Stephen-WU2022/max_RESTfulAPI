@@ -1,4 +1,4 @@
-module max_RESTfulAPI-main
+module max_RESTfulAPI
 
 go 1.20
 
