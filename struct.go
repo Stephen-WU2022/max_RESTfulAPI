@@ -2,6 +2,7 @@ package max_RESTfulAPI
 
 import (
 	"context"
+	"github.com/sirupsen/logrus"
 	"sync"
 
 	"github.com/gorilla/websocket"
@@ -12,6 +13,7 @@ type MaxClient struct {
 	apiKey    string
 	apiSecret string
 
+	logger        *logrus.Logger
 	cancelFunc    *context.CancelFunc
 	ShutingBranch struct {
 		shut bool

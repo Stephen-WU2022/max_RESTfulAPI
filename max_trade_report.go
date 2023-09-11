@@ -144,13 +144,13 @@ func (Mc *MaxClient) handleTradeReportMsg(msg []byte) error {
 	var msgMap map[string]interface{}
 	err := json.Unmarshal(msg, &msgMap)
 	if err != nil {
-		LogWarningToDailyLogFile(err)
+		Mc.logger.Error(err)
 		return errors.New("fail to unmarshal message")
 	}
 
 	event, ok := msgMap["e"]
 	if !ok {
-		LogWarningToDailyLogFile("there is no event in message")
+		Mc.logger.Error("there is no event in message")
 		return errors.New("fail to obtain message")
 	}
 

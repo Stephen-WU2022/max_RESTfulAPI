@@ -35,6 +35,7 @@ type TradeStreamBranch struct {
 		timestamp int64
 		mux       sync.RWMutex
 	}
+	logger *logrus.Logger
 }
 
 func maxSubscribeTradeMessage(symbol string) ([]byte, error) {
@@ -75,6 +76,7 @@ func SpotTradeStream(symbol string, logger *logrus.Logger) *TradeStreamBranch {
 	o.cancel = &cancel
 	o.Market = strings.ToLower(symbol)
 	o.TradeChan = make(chan TradeData, 100)
+	o.logger = logger
 	go o.maintain(ctx, symbol)
 	go o.listen(ctx)
 
@@ -89,7 +91,7 @@ func (o *TradeStreamBranch) maintain(ctx context.Context, symbol string) {
 
 	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
-		LogFatalToDailyLogFile(err)
+		o.logger.Error(err)
 	}
 	//LogInfoToDailyLogFile("Connected:", url)
 	o.ConnBranch.conn = conn
@@ -99,13 +101,13 @@ func (o *TradeStreamBranch) maintain(ctx context.Context, symbol string) {
 
 	subMsg, err := maxSubscribeTradeMessage(symbol)
 	if err != nil {
-		LogFatalToDailyLogFile(errors.New("fail to construct subscribtion message"))
+		o.logger.Error(errors.New("fail to construct subscribtion message"))
 	}
 	o.ConnBranch.Lock()
 	err = o.ConnBranch.conn.WriteMessage(websocket.TextMessage, subMsg)
 	o.ConnBranch.Unlock()
 	if err != nil {
-		LogFatalToDailyLogFile(errors.New("fail to subscribe websocket"))
+		o.logger.Error(errors.New("fail to subscribe websocket"))
 	}
 
 	NoErr := true
@@ -121,7 +123,7 @@ func (o *TradeStreamBranch) maintain(ctx context.Context, symbol string) {
 			_, msg, err := o.ConnBranch.conn.ReadMessage()
 			o.ConnBranch.Unlock()
 			if err != nil {
-				LogWarningToDailyLogFile("read:", err)
+				o.logger.Error("read:", err)
 				o.onErrBranch.mutex.Lock()
 				o.onErrBranch.onErr = true
 				o.onErrBranch.mutex.Unlock()
@@ -130,7 +132,7 @@ func (o *TradeStreamBranch) maintain(ctx context.Context, symbol string) {
 			var msgMap map[string]interface{}
 			err = json.Unmarshal(msg, &msgMap)
 			if err != nil {
-				LogWarningToDailyLogFile(err)
+				o.logger.Error(err)
 				o.onErrBranch.mutex.Lock()
 				o.onErrBranch.onErr = true
 				o.onErrBranch.mutex.Unlock()
@@ -167,13 +169,13 @@ func (o *TradeStreamBranch) handleMaxTradeSocketMsg(msg []byte) error {
 	var msgMap map[string]interface{}
 	err := json.Unmarshal(msg, &msgMap)
 	if err != nil {
-		LogWarningToDailyLogFile(err)
+		o.logger.Error(err)
 		return errors.New("fail to unmarshal message")
 	}
 
 	event, ok := msgMap["e"]
 	if !ok {
-		LogWarningToDailyLogFile("there is no event in message")
+		o.logger.Error("there is no event in message")
 		return errors.New("fail to obtain message")
 	}
 

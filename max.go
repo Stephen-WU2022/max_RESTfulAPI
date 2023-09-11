@@ -3,6 +3,7 @@ package max_RESTfulAPI
 import (
 	"context"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"os"
 	"time"
 
@@ -11,7 +12,7 @@ import (
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
-func NewMaxClient(ctx context.Context, APIKEY, APISECRET string) *MaxClient {
+func NewMaxClient(ctx context.Context, APIKEY, APISECRET string, logger *logrus.Logger) *MaxClient {
 	// api client
 	cfg := NewConfiguration()
 	apiclient := NewAPIClient(cfg)
@@ -19,7 +20,7 @@ func NewMaxClient(ctx context.Context, APIKEY, APISECRET string) *MaxClient {
 	// Get markets []Market
 	markets, _, err := apiclient.PublicApi.GetApiV2Markets(ctx)
 	if err != nil {
-		LogFatalToDailyLogFile(err)
+		logger.Error(err)
 	}
 	m := MaxClient{}
 	m.apiKey = APIKEY
@@ -29,6 +30,7 @@ func NewMaxClient(ctx context.Context, APIKEY, APISECRET string) *MaxClient {
 	m.ShutingBranch.shut = false
 	m.ApiClient = apiclient
 	m.MarketsBranch.Markets = markets
+	m.logger = logger
 
 	return &m
 }

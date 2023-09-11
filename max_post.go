@@ -31,12 +31,13 @@ func (Mc *MaxClient) GetBalance() (map[string]Balance, error) {
 		currency := Accounts[i].Currency
 		balance, err := strconv.ParseFloat(Accounts[i].Balance, 64)
 		if err != nil {
-			LogFatalToDailyLogFile(err)
+
+			Mc.logger.Error(err)
 			return map[string]Balance{}, errors.New("fail to parse balance to float64")
 		}
 		locked, err := strconv.ParseFloat(Accounts[i].Locked, 64)
 		if err != nil {
-			LogFatalToDailyLogFile(err)
+			Mc.logger.Error(err)
 			return map[string]Balance{}, errors.New("fail to parse locked balance to float64")
 		}
 
@@ -118,21 +119,22 @@ func (Mc *MaxClient) CancelOrder(market string, id, clientId interface{}) (wsOrd
 		if err != nil {
 			return WsOrder{}, errors.New("fail to cancel order" + strconv.Itoa(int(id.(int64))))
 		}
-		LogInfoToDailyLogFile("Cancel Order ", id, "by CancelOrder func.")
+		Mc.logger.Info("Cancel Order ", id, "by CancelOrder func.")
 	} else if id == nil {
 		canceledorder, _, err = Mc.ApiClient.PrivateApi.PostApiV2OrderDeleteClientId(context.Background(), Mc.apiKey, Mc.apiSecret, clientId.(string))
 		if err != nil {
 			return WsOrder{}, errors.New("fail to cancel order" + clientId.(string))
 		}
-		LogInfoToDailyLogFile("Cancel Order with client_id ", clientId.(string), "by CancelOrder func.")
+		Mc.logger.Info("Cancel Order with client_id ", clientId.(string), "by CancelOrder func.")
 	}
 
 	return WsOrder(canceledorder), nil
 }
 
-/*	"side" (string) set tp cancel only sell (asks) or buy (bids) orders
-	"market" (string) specify market like btctwd / ethbtc
-	both params can be set as nil.
+/*
+"side" (string) set tp cancel only sell (asks) or buy (bids) orders
+"market" (string) specify market like btctwd / ethbtc
+both params can be set as nil.
 */
 func (Mc *MaxClient) CancelOrders(market, side interface{}) ([]WsOrder, error) {
 	params := make(map[string]interface{})
