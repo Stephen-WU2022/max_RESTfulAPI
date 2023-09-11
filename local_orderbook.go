@@ -246,7 +246,6 @@ func (o *OrderbookBranch) parseOrderbookSnapshotMsg(msgMap map[string]interface{
 	if book.Market != o.Market {
 		return errors.New("wrong market")
 	}
-	fmt.Println(book.Bids)
 	// snapshot
 	if err := o.keeper.handleSnapshot(book.Bids, book.Asks); err != nil {
 		return err
