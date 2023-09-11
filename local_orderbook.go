@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	mapbook "github.com/Bo-Hao/syncmapbook"
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
@@ -29,8 +28,6 @@ type OrderbookBranch struct {
 
 	Market string
 
-	bids                       mapbook.BidBook
-	asks                       mapbook.AskBook
 	lastUpdatedTimestampBranch struct {
 		timestamp int64
 		sync.RWMutex
@@ -51,8 +48,6 @@ type bookstruct struct {
 func SpotLocalOrderbook(ctx context.Context, symbol string, logger *logrus.Logger) *OrderbookBranch {
 	var o OrderbookBranch
 	o.Market = strings.ToLower(symbol)
-	o.asks = *mapbook.NewAskBook()
-	o.bids = *mapbook.NewBidBook()
 	o.logger = logger
 
 	go o.maintain(ctx, symbol)

@@ -1,5 +1,3 @@
-github.com/Bo-Hao/syncmapbook v0.0.0-20220718053906-52e90f90286d h1:I4ABLS2GZXKaeAOvdEQT+e8H/toxHmBIVajUUzc1z7w=
-github.com/Bo-Hao/syncmapbook v0.0.0-20220718053906-52e90f90286d/go.mod h1:Lgwzf3s7tb8FVUGCECiZ7/ICMU+owS8qnzRSxsm+46s=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
