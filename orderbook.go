@@ -19,16 +19,16 @@ func (o *OrderBookKeeper) handleSnapshot(bids, asks [][]decimal.Decimal) error {
 	defer o.Unlock()
 
 	// check slice order if bids[i][0] didn't sort by descending, reverse it
-	if len(o.bids) > 1 && o.bids[0][0].LessThan(o.bids[1][0]) {
-		for i, j := 0, len(o.bids)-1; i < j; i, j = i+1, j-1 {
-			o.bids[i], o.bids[j] = o.bids[j], o.bids[i]
+	if len(bids) > 1 && bids[0][0].LessThan(bids[1][0]) {
+		for i, j := 0, len(bids)-1; i < j; i, j = i+1, j-1 {
+			bids[i], bids[j] = bids[j], bids[i]
 		}
 	}
 
 	//check slice order if asks[i][0] didn't sort by ascending, reverse it
-	if len(o.asks) > 1 && o.asks[0][0].GreaterThan(o.asks[1][0]) {
-		for i, j := 0, len(o.asks)-1; i < j; i, j = i+1, j-1 {
-			o.asks[i], o.asks[j] = o.asks[j], o.asks[i]
+	if len(asks) > 1 && asks[0][0].GreaterThan(asks[1][0]) {
+		for i, j := 0, len(asks)-1; i < j; i, j = i+1, j-1 {
+			asks[i], asks[j] = asks[j], asks[i]
 		}
 	}
 
