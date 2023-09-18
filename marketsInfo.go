@@ -2,21 +2,22 @@ package max_RESTfulAPI
 
 import (
 	"fmt"
+	"github.com/shopspring/decimal"
 	"net/http"
 )
 
 // MaxMarketInfo represents the data structure of a market.
 type MaxMarketInfo struct {
-	ID                 string  `json:"id"`
-	Name               string  `json:"name"`
-	MarketStatus       string  `json:"market_status"`
-	BaseUnit           string  `json:"base_unit"`
-	BaseUnitPrecision  int     `json:"base_unit_precision"`
-	MinBaseAmount      float64 `json:"min_base_amount"`
-	QuoteUnit          string  `json:"quote_unit"`
-	QuoteUnitPrecision int     `json:"quote_unit_precision"`
-	MinQuoteAmount     float64 `json:"min_quote_amount"`
-	MWalletSupported   bool    `json:"m_wallet_supported"`
+	ID                 string          `json:"id"`
+	Name               string          `json:"name"`
+	MarketStatus       string          `json:"market_status"`
+	BaseUnit           string          `json:"base_unit"`
+	BaseUnitPrecision  int             `json:"base_unit_precision"`
+	MinBaseAmount      decimal.Decimal `json:"min_base_amount"`
+	QuoteUnit          string          `json:"quote_unit"`
+	QuoteUnitPrecision int             `json:"quote_unit_precision"`
+	MinQuoteAmount     decimal.Decimal `json:"min_quote_amount"`
+	MWalletSupported   bool            `json:"m_wallet_supported"`
 }
 
 // GetMaxMarketInfo fetches market information from the API.
